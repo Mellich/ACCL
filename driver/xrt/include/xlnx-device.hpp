@@ -69,8 +69,8 @@ public:
   ACCL(int nbufs, int buffersize, unsigned int idx, enum mode m)
       : _nbufs(nbufs), _rx_host_bufs(nbufs), _rx_buffer_spares(nbufs),
         _rx_buffer_size(buffersize), _mode(m) {
-    get_xilinx_device(idx);
-	_exchange_mem = read_reg(_base_addr + EXCHANGE_MEM_OFFSET_ADDRESS);
+    	get_xilinx_device(idx);
+//	_exchange_mem = read_reg(_base_addr + EXCHANGE_MEM_OFFSET_ADDRESS);
   }
 
   ~ACCL() {
@@ -83,7 +83,7 @@ public:
   /*
    *      Get the first or idx Xilinx device
    */
-  void get_xilinx_device(unsigned int idx) {
+  void get_xilinx_device(unsigned int idx=0) {
     _device = xrt::device(idx);
     // Do some checks to see if we're on the U280, error otherwise
     //	std::string name = _device.get_info<xrt::info::device::name>();

@@ -22,9 +22,9 @@
 #include <vector>
 
 int check_usage(int argc, char *argv[]) {
-  if (argc < 5) {
+  if (argc < 4) {
     std::cerr << "Usage: " << argv[0]
-              << " <bitstream> <device_idx> <bank_id> <mode>" << std::endl;
+              << " <bitstream> <device_idx> <bank_id>" << std::endl;
     exit(-1);
   }
 }
@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
   std::cout << "Rank " << rank << std::endl;
   std::cout << "Bitstream " << bitstream_f << std::endl;
   std::cout << "Bank Idx " << bank_idx << std::endl;
-  std::cout << "Mode " << mode << std::endl;
+//  std::cout << "Mode " << mode << std::endl;
 
   // Setup
   Timer t_construct, t_bitstream, t_read_reg, t_write_reg, t_execute_kernel,
@@ -57,26 +57,32 @@ int main(int argc, char *argv[]) {
   const int nbuf = size;
   constexpr int buffer_size = 16 * 1024;
 
+  std::cerr << "0" << std::endl;
   t_construct.start();
   ACCL f(nbuf, buffer_size, device_idx, DUAL);
   t_construct.end();
 
+  std::cerr << "1" << std::endl;
   t_bitstream.start();
   f.load_bitstream(bitstream_f);
   t_bitstream.end();
 
+  std::cerr << "2" << std::endl;
   t_config_comm.start();
   //f.config_comm(nbuf);
   t_config_comm.end();
 
+  std::cerr << "3" << std::endl;
   t_preprxbuffers.start();
   f.prep_rx_buffers(bank_idx);
   t_preprxbuffers.end();
 
+  std::cerr << "4" << std::endl;
   t_dump_rx_buffers.start();
   f.dump_rx_buffers();
   t_dump_rx_buffers.end();
 
+  std::cerr << "5" << std::endl;
   t_execute_kernel.start();
   f.nop_op();
   t_execute_kernel.end();
