@@ -55,7 +55,7 @@ private:
   std::vector<xrt::bo> _rx_buffer_spares;
   xrt::bo _utility_spare; 
   xrt::device _device;
-  xrt::kernel _krnl;
+  xrt::kernel *_krnl;
  // std::vector<communicator> _comm;
   const uint64_t _base_addr = 0x800;
   uint64_t _exchange_mem = _base_addr;
@@ -107,20 +107,21 @@ public:
     //	}
     MPI_Barrier(MPI_COMM_WORLD);
     cout << local_rank_string << endl;
-    _krnl = xrt::kernel(
+    *_krnl = xrt::kernel(
         _device, uuid,
         "ACCL:ccl_offload:1.0", //+string{local_rank_string},
         xrt::kernel::cu_access_mode::exclusive);
   }
 
   void write_reg(uint64_t addr, uint64_t data) {
-    _krnl.write_register(addr, data);
+    _krnl->write_register(addr, data);
   }
 
-  int read_reg(uint64_t addr) { return _krnl.read_register(addr); }
+  int read_reg(uint64_t addr) { return _krnl->read_register(addr); }
 
   template <typename... Args> void execute_kernel(bool wait, Args... args) {
-    auto run = _krnl(args...);
+    auto _krnl2 =* _krnl;
+    auto run = _krnl2(args...);
     run.start();
     if (wait) {
       run.wait();
@@ -227,7 +228,8 @@ public:
 
   // XXX Continue here
   void nop_op(bool run_async = false) { //, waitfor=[]) {
-    auto handle = _krnl(nop, 0, 0, 0, 0, 0, 0, 0, _rx_buffer_spares[0],
+   	auto _krnl2 = *_krnl;
+	 auto handle = _krnl2(nop, 0, 0, 0, 0, 0, 0, 0, _rx_buffer_spares[0],
                         _rx_buffer_spares[0]); //, waitfor=waitfor);
     handle.start();
     handle.wait();
