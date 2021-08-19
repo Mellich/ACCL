@@ -262,4 +262,25 @@ void set_max_dma_transaction_flight(auto value=0) {
     handle.start();
     handle.wait();
   }
+
+  auto enable_profiling(bool run_async=false) {//, waitfor=[]) {
+        auto handle = _krnl[0](config, start_profiling);
+        if(!run_async) {
+            handle.wait();
+		}
+	return handle;		
+	}
+
+	auto disable_profiling(bool run_async=false) {//, waitfor=[]):
+        auto handle = _krnl[0](config, end_profiling);
+        if(!run_async) {
+            handle.wait();
+		}
+		return handle;		
+	}
+
+
+
+
+
 };
