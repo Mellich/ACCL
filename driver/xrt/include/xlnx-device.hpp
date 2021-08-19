@@ -55,7 +55,7 @@ private:
   std::vector<xrt::bo> _rx_buffer_spares;
   xrt::bo _utility_spare; 
   xrt::device _device;
-  xrt::kernel *_krnl;
+  xrt::kernel _krnl[1];
  // std::vector<communicator> _comm;
   const uint64_t _base_addr = 0x800;
   uint64_t _exchange_mem = _base_addr;
@@ -76,8 +76,8 @@ public:
   ~ACCL() {
     std::cout << "Removing CCLO object at " << std::hex << get_mmio_addr()
               << std::endl;
-    execute_kernel(true, config, 0, 0, 0, reset_periph, 0, 0, 0, _rx_buffer_spares[0],
-                   _rx_buffer_spares[0]);
+//    execute_kernel(true, config, 0, 0, 0, reset_periph, 0, 0, 0, _rx_buffer_spares[0],
+  //                 _rx_buffer_spares[0]);
   }
 
   /*
@@ -106,10 +106,10 @@ public:
     auto uuid = _device.load_xclbin(xclbin.c_str());
     //	}
     MPI_Barrier(MPI_COMM_WORLD);
-    cout << local_rank_string << endl;
-    *_krnl = xrt::kernel(
+    cout << "Rank: " << local_rank_string << endl;
+    _krnl[0] = xrt::kernel(
         _device, uuid,
-        "ACCL:ccl_offload:1.0", //+string{local_rank_string},
+        "ccl_offload:ccl_offload_0", //+string{local_rank_string},
         xrt::kernel::cu_access_mode::exclusive);
   }
 
@@ -120,8 +120,7 @@ public:
   int read_reg(uint64_t addr) { return _krnl->read_register(addr); }
 
   template <typename... Args> void execute_kernel(bool wait, Args... args) {
-    auto _krnl2 =* _krnl;
-    auto run = _krnl2(args...);
+    auto run = _krnl[0](args...);
     run.start();
     if (wait) {
       run.wait();
@@ -194,12 +193,14 @@ public:
     for (int i = 0; i < _nbufs; i++) {
       // Alloc and fill buffer
       const xrtMemoryGroup bank_grp_idx = bank_id;
+      cout << bank_id << endl;
       auto bo = xrt::bo(_device, _rx_buffer_size, bank_grp_idx);
       auto hostmap = bo.map<int8_t *>();
       std::fill(hostmap, hostmap + (_rx_buffer_size), static_cast<int8_t>(0));
       bo.sync(XCL_BO_SYNC_BO_TO_DEVICE, SIZE, 0);
       _rx_buffer_spares.insert(_rx_buffer_spares.cbegin() + i, bo);
 
+      cout << "Writing registers" << endl;
       // Write meta data
       addr += 4;
       write_reg(addr, bo.address() & 0xffffffff);
@@ -216,10 +217,14 @@ public:
       }
       _comm_addr = addr + 4;
       // Start irq-driven RX buffer scheduler and (de)packetizer
+      cout << "enable_irq" << endl;
       execute_kernel(true, config, 0, 0, 0, enable_irq, 0, 0, 0, _rx_buffer_spares[0],
                      _rx_buffer_spares[0]);
+      cout << "enabled_irq" << endl;
+      cout << "enable_pkt" << endl;
       execute_kernel(true, config, 0, 0, 0, enable_pkt, 0, 0, 0, _rx_buffer_spares[0],
                      _rx_buffer_spares[0]);
+      cout << "enabled_pkt" << endl;
     }
   }
   uint64_t get_retcode() { return read_reg(0xFFC); }
@@ -228,8 +233,7 @@ public:
 
   // XXX Continue here
   void nop_op(bool run_async = false) { //, waitfor=[]) {
-   	auto _krnl2 = *_krnl;
-	 auto handle = _krnl2(nop, 0, 0, 0, 0, 0, 0, 0, _rx_buffer_spares[0],
+	 auto handle = _krnl[0](nop, 0, 0, 0, 0, 0, 0, 0, _rx_buffer_spares[0],
                         _rx_buffer_spares[0]); //, waitfor=waitfor);
     handle.start();
     handle.wait();

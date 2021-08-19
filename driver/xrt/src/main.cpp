@@ -57,34 +57,34 @@ int main(int argc, char *argv[]) {
   const int nbuf = size;
   constexpr int buffer_size = 16 * 1024;
 
-  std::cerr << "0" << std::endl;
+  std::cerr << "Construct ACCL" << std::endl;
   t_construct.start();
   ACCL f(nbuf, buffer_size, device_idx, DUAL);
   t_construct.end();
 
-  std::cerr << "1" << std::endl;
+  std::cerr << "Load bitstream" << std::endl;
   t_bitstream.start();
   f.load_bitstream(bitstream_f);
   t_bitstream.end();
 
-  std::cerr << "2" << std::endl;
+  std::cerr << "Config communicator" << std::endl;
   t_config_comm.start();
   //f.config_comm(nbuf);
   t_config_comm.end();
 
-  std::cerr << "3" << std::endl;
+  std::cerr << "Prep RX buffers" << std::endl;
   t_preprxbuffers.start();
-  f.prep_rx_buffers(bank_idx);
+//  f.prep_rx_buffers(bank_idx);
   t_preprxbuffers.end();
 
-  std::cerr << "4" << std::endl;
+  std::cerr << "Dump RX buffers" << std::endl;
   t_dump_rx_buffers.start();
-  f.dump_rx_buffers();
+  //f.dump_rx_buffers();
   t_dump_rx_buffers.end();
 
-  std::cerr << "5" << std::endl;
+  std::cerr << "NOP" << std::endl;
   t_execute_kernel.start();
-  f.nop_op();
+  //f.nop_op();
   t_execute_kernel.end();
 
   std::cout << "t_construct: " << t_construct.elapsed() << " usecs"
