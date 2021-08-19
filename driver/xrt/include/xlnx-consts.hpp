@@ -36,7 +36,8 @@ enum accl_fgFunc {
   use_udp_stack = 9,
   start_profiling = 10,
   end_profiling = 11,
-  set_dma_transaction_size = 12
+  set_dma_transaction_size = 12,
+  set_max_dma_transactions = 13
 };
 
 enum accl_operation_t {

@@ -49,6 +49,7 @@ class ACCL {
 
 private:
   std::vector<std::vector<int8_t>> _rx_host_bufs;
+  int _segment_size;
   int _nbufs;
   int _rx_buffers_adr;
   int _rx_buffer_size;
@@ -192,8 +193,8 @@ public:
     write_reg(addr, _nbufs);
     for (int i = 0; i < _nbufs; i++) {
       // Alloc and fill buffer
-      const xrtMemoryGroup bank_grp_idx = bank_id;
-      cout << bank_id << endl;
+      const auto bank_grp_idx = _krnl->group_id(i);
+      cout << "Bank ID: " << bank_grp_idx << endl;
       auto bo = xrt::bo(_device, _rx_buffer_size, bank_grp_idx);
       auto hostmap = bo.map<int8_t *>();
       std::fill(hostmap, hostmap + (_rx_buffer_size), static_cast<int8_t>(0));
@@ -225,8 +226,33 @@ public:
       execute_kernel(true, config, 0, 0, 0, enable_pkt, 0, 0, 0, _rx_buffer_spares[0],
                      _rx_buffer_spares[0]);
       cout << "enabled_pkt" << endl;
+      cout << "time taken to enqueue buffers "<< read_reg(0x0FF4) << endl;
     }
   }
+
+
+void set_dma_transaction_size(auto value=0) {
+        if(value % 8 != 0) {
+            cerr << "ACCL: dma transaction must be divisible by 8 to use reduce collectives" << endl;
+
+	} else if(value > _rx_buffer_size) {
+            cerr << "ACCL: transaction size should be less or equal to configured buffer size!" << endl;
+            return;
+	}
+        _krnl[0](true, config, set_dma_transaction_size, value);   
+        _segment_size = value;
+        cout << "time taken to start and stop timer " <<  read_reg(0x0FF4) << endl;
+}
+
+
+void set_max_dma_transaction_flight(auto value=0) {
+        if(value > 20) {
+            cerr  << "ACCL: transaction size should be less or equal to configured buffer size!" << endl;
+            return;
+	}
+        _krnl[0](true, config, set_max_dma_transactions, value);
+}
+
   uint64_t get_retcode() { return read_reg(0xFFC); }
 
   uint64_t get_hwid() { return read_reg(0xFF8); }
