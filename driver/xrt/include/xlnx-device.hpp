@@ -120,12 +120,10 @@ public:
 
   int read_reg(uint64_t addr) { return _krnl->read_register(addr); }
 
-  template <typename... Args> void execute_kernel(bool wait, Args... args) {
+  template <typename... Args> auto execute_kernel(Args... args) {
     auto run = _krnl[0](args...);
     run.start();
-    if (wait) {
-      run.wait();
-    }
+	return run;
   }
 
 	void dump_exchange_memory() {
@@ -134,9 +132,9 @@ public:
         for(int i =0; i< EXCHANGE_MEM_ADDRESS_RANGE; i+=4*num_word_per_line){
             std::stringstream ss;
 			for(int j=0; j<num_word_per_line; j++) {
-             //   ss << read_register(_exchange_mem.base_addr(i+(j*4)));
+       //         ss << read_reg(_base_addr(i+(j*4)));
 			}
-    //        std::cout << std::hex << _exchange_mem.base_addr + i <<  ss << endl;
+  //          std::cout << std::hex << _base_addr + i <<  ss << endl;
 		}
 	}
 
@@ -219,11 +217,11 @@ public:
       _comm_addr = addr + 4;
       // Start irq-driven RX buffer scheduler and (de)packetizer
       cout << "enable_irq" << endl;
-      execute_kernel(true, config, 0, 0, 0, enable_irq, 0, 0, 0, _rx_buffer_spares[0],
+      execute_kernel(config, 0, 0, 0, enable_irq, 0, 0, 0, _rx_buffer_spares[0],
                      _rx_buffer_spares[0]);
       cout << "enabled_irq" << endl;
       cout << "enable_pkt" << endl;
-      execute_kernel(true, config, 0, 0, 0, enable_pkt, 0, 0, 0, _rx_buffer_spares[0],
+      execute_kernel(config, 0, 0, 0, enable_pkt, 0, 0, 0, _rx_buffer_spares[0],
                      _rx_buffer_spares[0]);
       cout << "enabled_pkt" << endl;
       cout << "time taken to enqueue buffers "<< read_reg(0x0FF4) << endl;
