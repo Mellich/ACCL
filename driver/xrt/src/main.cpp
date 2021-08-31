@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
 
   std::cerr << "Dump RX buffers" << std::endl;
   t_dump_rx_buffers.start();
-//  f.dump_rx_buffers();
+  f.dump_rx_buffers();
   t_dump_rx_buffers.end();
 
   std::cerr << "NOP" << std::endl;

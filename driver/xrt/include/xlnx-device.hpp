@@ -108,14 +108,15 @@ public:
   void load_bitstream(const std::string xclbin) {
     char *local_rank_string = getenv("OMPI_COMM_WORLD_LOCAL_RANK");
     int local_rank = atoi(local_rank_string);
-    //	if(local_rank==0) {
-    auto uuid = _device.load_xclbin(xclbin.c_str());
-    //	}
+	//xrt::uuid uuid;
+   	//if(local_rank==0) {
+    	auto uuid = _device.load_xclbin(xclbin.c_str());
+    //}
     MPI_Barrier(MPI_COMM_WORLD);
     cout << "Rank: " << local_rank_string << endl;
-    _krnl[0] = xrt::kernel(
+    _krnl[local_rank] = xrt::kernel(
         _device, uuid,
-        "ccl_offload:ccl_offload_0", //+string{local_rank_string},
+        "ccl_offload:ccl_offload_"+string{local_rank_string},
         xrt::kernel::cu_access_mode::exclusive);
   }
 
@@ -123,7 +124,7 @@ public:
     _krnl->write_register(addr, data);
   }
 
-  int32_t read_reg(int64_t addr) { return _krnl->read_register(addr); }
+  const int32_t read_reg(int64_t addr) { return _krnl->read_register(addr); }
 
 
 	void dump_exchange_memory() {
@@ -148,44 +149,44 @@ public:
       int8_t res;
 
       addr += 4;
-      res = read_reg(addr);
+      res = mmio_read(addr);
       std::cout << "ADDRL: " << static_cast<int32_t>(res) << std::endl;
 
       addr += 4;
-      res = read_reg(addr);
+      res = mmio_read(addr);
       std::cout << "ADDRH: " << static_cast<int32_t>(res) << std::endl;
 
       addr += 4;
-      res = read_reg(addr);
+      res = mmio_read(addr);
       std::cout << "MAXSIZE: " << static_cast<int32_t>(res) << std::endl;
 
       addr += 4;
-      res = read_reg(addr);
+      res = mmio_read(addr);
       std::cout << "DMA TAG: " << static_cast<int32_t>(res) << std::endl;
 
       addr += 4;
-      res = read_reg(addr);
+      res = mmio_read(addr);
       std::cout << "ENQUEUED: " << static_cast<int32_t>(res) << std::endl;
 
       addr += 4;
-      res = read_reg(addr);
+      res = mmio_read(addr);
       std::cout << "RX_TAG: " << static_cast<int32_t>(res) << std::endl;
 
       addr += 4;
-      res = read_reg(addr);
+      res = mmio_read(addr);
       std::cout << "RESERVED: " << static_cast<int32_t>(res) << std::endl;
 
       addr += 4;
-      res = read_reg(addr);
+      res = mmio_read(addr);
       std::cout << "RX_LEN: " << static_cast<int32_t>(res) << std::endl;
 
       addr += 4;
-      res = read_reg(addr);
+      res = mmio_read(addr);
       std::cout << "RX_SRC: " << static_cast<int32_t>(res) << std::endl;
     }
   }
 
-void set_dma_transaction_size_param(auto value=0) {
+void set_dma_transaction_size_param(const auto value=0) {
         if(value % 8 != 0) {
             cerr << "ACCL: dma transaction must be divisible by 8 to use reduce collectives" << endl;
 
@@ -201,7 +202,7 @@ void set_dma_transaction_size_param(auto value=0) {
 }
 
 
-void set_max_dma_transaction_param(auto value=0) {
+void set_max_dma_transaction_param(const auto value=0) {
         if(value > 20) {
             cerr  << "ACCL: transaction size should be less or equal to configured buffer size!" << endl;
             return;
@@ -255,13 +256,13 @@ void set_max_dma_transaction_param(auto value=0) {
   }
 
 
-  int64_t mmio_read(int64_t addr) {
+  const int32_t mmio_read(const int64_t addr) {
 	_krnl->read_register(EXCHANGE_MEM_OFFSET_ADDRESS+addr);
   }
 
-  int64_t get_retcode() { return mmio_read(0xFFC); }
+  const int32_t get_retcode() { return mmio_read(0xFFC); }
 
-  uint64_t get_hwid() { return mmio_read(0xFF8); }
+  const uint32_t get_hwid() { return mmio_read(0xFF8); }
 
   // XXX Continue here
   void nop_op(bool run_async = false) { //, waitfor=[]) {
