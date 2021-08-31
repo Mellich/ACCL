@@ -99,7 +99,7 @@ public:
     //	}
   }
 
-  uint64_t get_mmio_addr() {
+  int32_t get_mmio_addr() {
     return 0; // XXX Implement this
   }
 
@@ -119,11 +119,11 @@ public:
         xrt::kernel::cu_access_mode::exclusive);
   }
 
-  void write_reg(uint64_t addr, uint64_t data) {
+  void write_reg(int64_t addr, uint64_t data) {
     _krnl->write_register(addr, data);
   }
 
-  int read_reg(uint64_t addr) { return _krnl->read_register(addr); }
+  int32_t read_reg(int64_t addr) { return _krnl->read_register(addr); }
 
 
 	void dump_exchange_memory() {
@@ -140,7 +140,7 @@ public:
 
 
   void dump_rx_buffers() {
-    int64_t addr = _base_addr;
+    int32_t addr = _base_addr;
     for (int i = 0; i < _nbufs; i++) {
       std::cout << "===========================" << std::endl;
       std::cout << "Dumping spare RX buffer: " << i << std::endl;
@@ -197,7 +197,7 @@ void set_dma_transaction_size_param(auto value=0) {
 
 
         _segment_size = value;
-        cout << "time taken to start and stop timer " <<  read_reg(0x0FF4) << endl;
+        cout << "time taken to start and stop timer " <<  mmio_read(0x0FF4) << endl;
 }
 
 
@@ -211,7 +211,7 @@ void set_max_dma_transaction_param(auto value=0) {
 
   void prep_rx_buffers(int bank_id = 1) {
     const auto SIZE = _rx_buffer_size / sizeof(int8_t); // 1...
-    int64_t addr = _base_addr;
+    int32_t addr = _base_addr;
      write_reg(addr, _nbufs);
     for (int i = 0; i < _nbufs; i++) {
       // Alloc and fill buffer
@@ -247,7 +247,7 @@ void set_max_dma_transaction_param(auto value=0) {
       execute_kernel(config, 1, 0, 0, enable_pkt, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
       cout << "enabled_pkt" << endl;
       cout << "ret code "<< get_retcode() << endl;
-      cout << "time taken to enqueue buffers "<< read_reg(0x0FF4) << endl;
+      cout << "time taken to enqueue buffers "<< mmio_read(0x0FF4) << endl;
  
 	set_dma_transaction_size_param(_rx_buffer_size);
 	set_max_dma_transaction_param(10);
@@ -255,10 +255,13 @@ void set_max_dma_transaction_param(auto value=0) {
   }
 
 
+  int64_t mmio_read(int64_t addr) {
+	_krnl->read_register(EXCHANGE_MEM_OFFSET_ADDRESS+addr);
+  }
 
-  uint64_t get_retcode() { return read_reg(0xFFC); }
+  int64_t get_retcode() { return mmio_read(0xFFC); }
 
-  uint64_t get_hwid() { return read_reg(0xFF8); }
+  uint64_t get_hwid() { return mmio_read(0xFF8); }
 
   // XXX Continue here
   void nop_op(bool run_async = false) { //, waitfor=[]) {
