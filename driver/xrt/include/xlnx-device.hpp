@@ -58,7 +58,7 @@ private:
   xrt::device _device;
   xrt::kernel _krnl[1];
  // std::vector<communicator> _comm;
-  const uint64_t _base_addr = 0x800;
+  const uint64_t _base_addr = HOST_CTRL_ADDRESS_RANGE;
   uint64_t _exchange_mem = _base_addr;
   uint64_t _comm_addr = 0;
   enum mode _mode;
@@ -67,18 +67,23 @@ private:
 public:
   ACCL(unsigned int idx = 1) { get_xilinx_device(idx); }
 
-  ACCL(int nbufs, int buffersize, unsigned int idx, enum mode m)
+  ACCL(int nbufs=16, int buffersize=1024, unsigned int idx=1, enum mode m=DUAL)
       : _nbufs(nbufs), _rx_host_bufs(nbufs), _rx_buffer_spares(nbufs),
         _rx_buffer_size(buffersize), _mode(m) {
     	get_xilinx_device(idx);
 //	_exchange_mem = read_reg(_base_addr + EXCHANGE_MEM_OFFSET_ADDRESS);
   }
 
-  ~ACCL() {
+  template <typename... Args> auto execute_kernel(Args... args) {
+    auto run = _krnl[0](args...);
+	run.wait();
+	return run;
+  }
+ 
+ ~ACCL() {
     std::cout << "Removing CCLO object at " << std::hex << get_mmio_addr()
               << std::endl;
-//    execute_kernel(true, config, 0, 0, 0, reset_periph, 0, 0, 0, _rx_buffer_spares[0],
-  //                 _rx_buffer_spares[0]);
+   execute_kernel(config, 1, 0, 0, reset_periph, 0, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
   }
 
   /*
@@ -120,11 +125,6 @@ public:
 
   int read_reg(uint64_t addr) { return _krnl->read_register(addr); }
 
-  template <typename... Args> auto execute_kernel(Args... args) {
-    auto run = _krnl[0](args...);
-    run.start();
-	return run;
-  }
 
 	void dump_exchange_memory() {
         std::cout << "exchange mem: "<< std::endl;
@@ -185,21 +185,43 @@ public:
     }
   }
 
+void set_dma_transaction_size_param(auto value=0) {
+        if(value % 8 != 0) {
+            cerr << "ACCL: dma transaction must be divisible by 8 to use reduce collectives" << endl;
+
+	} else if(value > _rx_buffer_size) {
+            cerr << "ACCL: transaction size should be less or equal to configured buffer size!" << endl;
+            return;
+	}
+     execute_kernel(config, value, 0, 0, set_dma_transaction_size, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
+
+
+        _segment_size = value;
+        cout << "time taken to start and stop timer " <<  read_reg(0x0FF4) << endl;
+}
+
+
+void set_max_dma_transaction_param(auto value=0) {
+        if(value > 20) {
+            cerr  << "ACCL: transaction size should be less or equal to configured buffer size!" << endl;
+            return;
+	}
+    execute_kernel(config, value, 0, 0, set_max_dma_transactions, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
+}
+
   void prep_rx_buffers(int bank_id = 1) {
-    const auto SIZE = _rx_buffer_size / sizeof(int8_t);
+    const auto SIZE = _rx_buffer_size / sizeof(int8_t); // 1...
     int64_t addr = _base_addr;
-    write_reg(addr, _nbufs);
+     write_reg(addr, _nbufs);
     for (int i = 0; i < _nbufs; i++) {
       // Alloc and fill buffer
-      const auto bank_grp_idx = _krnl->group_id(i);
-      cout << "Bank ID: " << bank_grp_idx << endl;
+      const auto bank_grp_idx = i; //_krnl->group_id(i);
       auto bo = xrt::bo(_device, _rx_buffer_size, bank_grp_idx);
       auto hostmap = bo.map<int8_t *>();
       std::fill(hostmap, hostmap + (_rx_buffer_size), static_cast<int8_t>(0));
-      bo.sync(XCL_BO_SYNC_BO_TO_DEVICE, SIZE, 0);
+      bo.sync(XCL_BO_SYNC_BO_TO_DEVICE);
       _rx_buffer_spares.insert(_rx_buffer_spares.cbegin() + i, bo);
 
-      cout << "Writing registers" << endl;
       // Write meta data
       addr += 4;
       write_reg(addr, bo.address() & 0xffffffff);
@@ -215,41 +237,24 @@ public:
         write_reg(addr, 0);
       }
       _comm_addr = addr + 4;
+    }
       // Start irq-driven RX buffer scheduler and (de)packetizer
       cout << "enable_irq" << endl;
-      execute_kernel(config, 0, 0, 0, enable_irq, 0, 0, 0, _rx_buffer_spares[0],
-                     _rx_buffer_spares[0]);
+      execute_kernel(config, 1, 0, 0, enable_irq, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
       cout << "enabled_irq" << endl;
-      cout << "enable_pkt" << endl;
-      execute_kernel(config, 0, 0, 0, enable_pkt, 0, 0, 0, _rx_buffer_spares[0],
-                     _rx_buffer_spares[0]);
+      cout << "ret code "<< get_retcode() << endl;
+	  cout << "enable_pkt" << endl;
+      execute_kernel(config, 1, 0, 0, enable_pkt, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
       cout << "enabled_pkt" << endl;
+      cout << "ret code "<< get_retcode() << endl;
       cout << "time taken to enqueue buffers "<< read_reg(0x0FF4) << endl;
-    }
+ 
+	set_dma_transaction_size_param(_rx_buffer_size);
+	set_max_dma_transaction_param(10);
+
   }
 
 
-void set_dma_transaction_size(auto value=0) {
-        if(value % 8 != 0) {
-            cerr << "ACCL: dma transaction must be divisible by 8 to use reduce collectives" << endl;
-
-	} else if(value > _rx_buffer_size) {
-            cerr << "ACCL: transaction size should be less or equal to configured buffer size!" << endl;
-            return;
-	}
-        _krnl[0](true, config, set_dma_transaction_size, value);   
-        _segment_size = value;
-        cout << "time taken to start and stop timer " <<  read_reg(0x0FF4) << endl;
-}
-
-
-void set_max_dma_transaction_flight(auto value=0) {
-        if(value > 20) {
-            cerr  << "ACCL: transaction size should be less or equal to configured buffer size!" << endl;
-            return;
-	}
-        _krnl[0](true, config, set_max_dma_transactions, value);
-}
 
   uint64_t get_retcode() { return read_reg(0xFFC); }
 

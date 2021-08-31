@@ -54,8 +54,8 @@ int main(int argc, char *argv[]) {
       t_preprxbuffers, t_dump_rx_buffers, t_config_comm;
   accl_operation_t op = nop;
 
-  const int nbuf = size;
-  constexpr int buffer_size = 16 * 1024;
+  const int nbuf = 16;
+  constexpr int buffer_size = nbuf * 1024;
 
   std::cerr << "Construct ACCL" << std::endl;
   t_construct.start();
@@ -75,12 +75,11 @@ int main(int argc, char *argv[]) {
   std::cerr << "Prep RX buffers" << std::endl;
   t_preprxbuffers.start();
   f.prep_rx_buffers(bank_idx);
-
   t_preprxbuffers.end();
 
   std::cerr << "Dump RX buffers" << std::endl;
   t_dump_rx_buffers.start();
-  //f.dump_rx_buffers();
+//  f.dump_rx_buffers();
   t_dump_rx_buffers.end();
 
   std::cerr << "NOP" << std::endl;
