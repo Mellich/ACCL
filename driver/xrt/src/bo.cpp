@@ -1,5 +1,4 @@
-#include "xlnx-comm.hpp"
-#include "xlnx-consts.hpp"
+#include "accl-device.hpp"
 
 #include "experimental/xrt_aie.h"
 #include "experimental/xrt_device.h"

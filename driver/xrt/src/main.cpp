@@ -16,7 +16,7 @@
 # *******************************************************************************/
 
 #include "timing.hpp"
-#include "xlnx-dac.hpp"
+#include "accl-device.hpp"
 
 #include <mpi.h>
 #include <vector>

@@ -17,5 +17,5 @@
 
 #pragma once
 
-#include "xlnx-device.hpp"
+#include "accl-device.hpp"
 

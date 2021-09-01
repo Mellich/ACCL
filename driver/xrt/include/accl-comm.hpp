@@ -26,7 +26,7 @@
 #include "experimental/xrt_kernel.h"
 #include <arpa/inet.h>
 #include <mpi.h>
-#include "xlnx-consts.hpp"
+#include "accl-consts.hpp"
 
 using namespace std;
 
