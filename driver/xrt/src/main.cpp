@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
 
   std::cerr << "Config communicator" << std::endl;
   t_config_comm.start();
-  //f.config_comm(nbuf);
+  f.config_comm();
   t_config_comm.end();
 
   std::cerr << "Prep RX buffers" << std::endl;

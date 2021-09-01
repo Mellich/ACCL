@@ -33,6 +33,7 @@
 #include <vector>
 #include <sstream>      // std::stringstream
 
+
 bool compatible_size(size_t nbytes, accl_reduce_func type) {
   if (type == fp || type == i32) {
     return (nbytes % 4) == 0 ? true : false;
@@ -57,12 +58,14 @@ private:
   xrt::bo _utility_spare; 
   xrt::device _device;
   xrt::kernel _krnl[1];
- // std::vector<communicator> _comm;
+  communicator _comm;
   const uint64_t _base_addr = HOST_CTRL_ADDRESS_RANGE;
-  uint64_t _exchange_mem = _base_addr;
   uint64_t _comm_addr = 0;
   enum mode _mode;
   int _rank;
+  int _size;
+  string _local_rank_string;
+  int _local_rank;
 
 public:
   ACCL(unsigned int idx = 1) { get_xilinx_device(idx); }
@@ -71,7 +74,10 @@ public:
       : _nbufs(nbufs), _rx_host_bufs(nbufs), _rx_buffer_spares(nbufs),
         _rx_buffer_size(buffersize), _mode(m) {
     	get_xilinx_device(idx);
-//	_exchange_mem = read_reg(_base_addr + EXCHANGE_MEM_OFFSET_ADDRESS);
+    	_local_rank_string = string(getenv("OMPI_COMM_WORLD_LOCAL_RANK"));
+    	_local_rank = stoi(_local_rank_string);
+		MPI_Comm_rank(MPI_COMM_WORLD, &_rank);
+		MPI_Comm_size(MPI_COMM_WORLD, &_size);
   }
 
   template <typename... Args> auto execute_kernel(Args... args) {
@@ -99,24 +105,17 @@ public:
     //	}
   }
 
-  int32_t get_mmio_addr() {
-    return 0; // XXX Implement this
-  }
-
-  //void config_comm(int ranks) { _comm = {ranks, _comm_addr, _krnl}; }
-
+  void config_comm() { _comm = {_size, _local_rank, _rank, _comm_addr, _krnl[0], false}; }
+//int world_size, int local_rank, int rank, uint64_t comm_addr, xrt::kernel krnl, bool vnx = false
   void load_bitstream(const std::string xclbin) {
-    char *local_rank_string = getenv("OMPI_COMM_WORLD_LOCAL_RANK");
-    int local_rank = atoi(local_rank_string);
 	//xrt::uuid uuid;
    	//if(local_rank==0) {
     	auto uuid = _device.load_xclbin(xclbin.c_str());
     //}
     MPI_Barrier(MPI_COMM_WORLD);
-    cout << "Rank: " << local_rank_string << endl;
-    _krnl[local_rank] = xrt::kernel(
+    _krnl[_local_rank] = xrt::kernel(
         _device, uuid,
-        "ccl_offload:ccl_offload_"+string{local_rank_string},
+        "ccl_offload:ccl_offload_"+string{_local_rank_string},
         xrt::kernel::cu_access_mode::exclusive);
   }
 
@@ -201,6 +200,10 @@ void set_dma_transaction_size_param(const auto value=0) {
         cout << "time taken to start and stop timer " <<  mmio_read(0x0FF4) << endl;
 }
 
+int32_t get_mmio_addr() {
+    return 0; // XXX Implement this
+}
+
 
 void set_max_dma_transaction_param(const auto value=0) {
         if(value > 20) {
@@ -212,8 +215,8 @@ void set_max_dma_transaction_param(const auto value=0) {
 
   void prep_rx_buffers(int bank_id = 1) {
     const auto SIZE = _rx_buffer_size / sizeof(int8_t); // 1...
-    int32_t addr = _base_addr;
-     write_reg(addr, _nbufs);
+    int32_t addr = 0; //_base_addr;
+    mmio_write(addr, _nbufs);
     for (int i = 0; i < _nbufs; i++) {
       // Alloc and fill buffer
       const auto bank_grp_idx = i; //_krnl->group_id(i);
@@ -225,17 +228,17 @@ void set_max_dma_transaction_param(const auto value=0) {
 
       // Write meta data
       addr += 4;
-      write_reg(addr, bo.address() & 0xffffffff);
+      mmio_write(addr, bo.address() & 0xffffffff);
 
       addr += 4;
-      write_reg(addr, (bo.address() >> 32) & 0xffffffff);
+      mmio_write(addr, (bo.address() >> 32) & 0xffffffff);
 
       addr += 4;
-      write_reg(addr, _rx_buffer_size);
+      mmio_write(addr, _rx_buffer_size);
 
       for (int i = 3; i < 9; i++) {
         addr += 4;
-        write_reg(addr, 0);
+        mmio_write(addr, 0);
       }
       _comm_addr = addr + 4;
     }
@@ -256,8 +259,12 @@ void set_max_dma_transaction_param(const auto value=0) {
   }
 
 
-  const int32_t mmio_read(const int64_t addr) {
-	_krnl->read_register(EXCHANGE_MEM_OFFSET_ADDRESS+addr);
+  const int32_t mmio_read(const int32_t addr) {
+	read_reg(EXCHANGE_MEM_OFFSET_ADDRESS+addr);
+  }
+  
+  void mmio_write(const int32_t addr, const int32_t data) {
+	write_reg(EXCHANGE_MEM_OFFSET_ADDRESS+addr, data);
   }
 
   const int32_t get_retcode() { return mmio_read(0xFFC); }
@@ -287,9 +294,5 @@ void set_max_dma_transaction_param(const auto value=0) {
 		}
 		return handle;		
 	}
-
-
-
-
 
 };

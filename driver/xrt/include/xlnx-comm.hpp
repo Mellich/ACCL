@@ -26,11 +26,13 @@
 #include "experimental/xrt_kernel.h"
 #include <arpa/inet.h>
 #include <mpi.h>
+#include "xlnx-consts.hpp"
 
 using namespace std;
 
 class communicator {
-private:
+
+	private:
   string base_ipaddr = "197.11.27.";
   int start_ip = 1;
   int _world_size;
@@ -39,18 +41,19 @@ private:
   bool _vnx;
   map<int, string> rank_to_ip;
   uint64_t _comm_addr;
+  int _comm_count = 0;
+  typedef struct {
+	int addr;
+  } comm_data;
+  vector<comm_data> _cd;
 
 public:
   communicator() {}
 
-  communicator(int world_size, uint64_t comm_addr, xrt::kernel krnl,
+  communicator(int world_size, int local_rank, int rank, uint64_t comm_addr, xrt::kernel krnl, 
                bool vnx = false)
-      : _world_size(world_size), _comm_addr(comm_addr), _vnx(vnx) {
-
-    MPI_Comm_rank(MPI_COMM_WORLD, &_rank);
-    char *local_rank_string = getenv("OMPI_COMM_WORLD_LOCAL_RANK");
-    _local_rank = atoi(local_rank_string);
-
+      : _world_size(world_size), _local_rank(local_rank), _rank(rank), _comm_addr(comm_addr), _vnx(vnx) {
+/*
     uint64_t addr = _comm_addr;
 
     krnl.write_register(addr, world_size);
@@ -69,9 +72,9 @@ public:
       }
     }
     //  self.communicators.append(communicator)
-  }
-
-  int port_from_rank(int rank) {
+ */ dump_communicator();
+}
+ int port_from_rank(int rank) {
     throw std::logic_error("Function not yet implemented");
     return 0;
   }
@@ -79,4 +82,31 @@ public:
   uint32_t ip_encode(string ip) { return inet_addr(ip.c_str()); }
 
   string ip_from_rank(int rank) { return rank_to_ip[rank]; }
+
+	void dump_communicator() {
+		int _addr;
+		if(_comm_count==0) {
+			_addr = _comm_addr;
+		} else {
+			_addr = _cd.back().addr - EXCHANGE_MEM_OFFSET_ADDRESS;
+		}
+		_addr +=4;
+		cout << "Communicator: local_rank: " << _local_rank << " number of ranks: " << _world_size << endl;
+	}
+
+/*
+    def dump_communicator(self):
+        if len(self.communicators) == 0:
+            addr    = self.communicators_addr
+        else:
+            addr    = self.communicators[-1]["addr"] - EXCHANGE_MEM_OFFSET_ADDRESS
+        nr_ranks    = self.exchange_mem.read(addr)
+        addr +=4
+        local_rank  = self.exchange_mem.read(addr)
+        print(f"Communicator. local_rank: {local_rank} \t number of ranks: {nr_ranks}.")
+        for i in range(nr_ranks):
+            addr +=4
+
+*/
+
 };
