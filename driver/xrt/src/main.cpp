@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
 
   std::cerr << "Construct ACCL" << std::endl;
   t_construct.start();
-  ACCL f(nbuf, buffer_size, device_idx, DUAL);
+  ACCL f(nbuf, buffer_size, device_idx, rank, size, DUAL);
   t_construct.end();
 
   std::cerr << "Load bitstream" << std::endl;
@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
   std::cout << "t_execute_kernel: " << t_execute_kernel.elapsed() << " usecs"
             << std::endl;
 
-  std::cout << "HWID:" << f.get_hwid() << std::dec << std::endl;
+  std::cout << "HWID:" << hex << f.get_hwid() << std::dec << std::endl;
   MPI_Finalize();
   return 0;
 }

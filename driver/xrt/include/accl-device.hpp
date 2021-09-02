@@ -71,14 +71,12 @@ private:
 public:
   ACCL(unsigned int idx = 1) { get_xilinx_device(idx); }
 
-  ACCL(int nbufs=16, int buffersize=1024, unsigned int idx=1, enum mode m=DUAL)
+  ACCL(int nbufs=16, int buffersize=1024, unsigned int idx=1, int rank=1, int size=1, enum mode m=DUAL)
       : _nbufs(nbufs), _rx_host_bufs(nbufs), _rx_buffer_spares(nbufs),
-        _rx_buffer_size(buffersize), _mode(m) {
+        _rx_buffer_size(buffersize), _rank(rank), _size(size), _mode(m) {
     	get_xilinx_device(idx);
     	_local_rank_string = string(getenv("OMPI_COMM_WORLD_LOCAL_RANK"));
     	_local_rank = stoi(_local_rank_string);
-		MPI_Comm_rank(MPI_COMM_WORLD, &_rank);
-		MPI_Comm_size(MPI_COMM_WORLD, &_size);
   }
 
   template <typename... Args> auto execute_kernel(Args... args) {
@@ -254,7 +252,7 @@ void set_max_dma_transaction_param(const auto value=0) {
 
 
 
-  const int32_t get_retcode() { return mmio_read(_krnl[0], 0xFFC); }
+  const uint32_t get_retcode() { return mmio_read(_krnl[0], 0xFFC); }
 
   const uint32_t get_hwid() { return mmio_read(_krnl[0], 0xFF8); }
 
