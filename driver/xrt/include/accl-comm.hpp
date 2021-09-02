@@ -34,6 +34,12 @@ using namespace std;
 class communicator {
 
 	private:
+  struct comm_data {
+	int32_t local_rank;
+	int32_t addr;
+	int32_t ranks;
+	vector<int32_t> inbound_seq_number_addr;	
+  };
   string base_ipaddr = "197.11.27.";
   int start_ip = 1;
   int _world_size;
@@ -44,41 +50,36 @@ class communicator {
   uint64_t _comm_addr;
   int _comm_count = 0;
   xrt::kernel _krnl[1];
-  typedef struct {
-	int addr;
-  } comm_data;
   vector<comm_data> _cd;
 
 public:
   communicator() {}
 
-  communicator(int world_size, int local_rank, int rank, uint64_t comm_addr, xrt::kernel krnl, 
+  communicator(const int world_size, const int local_rank, const int rank, const uint32_t comm_addr, xrt::kernel krnl, 
                bool vnx = false)
       : _world_size(world_size), _local_rank(local_rank), _rank(rank), _comm_addr(comm_addr), _vnx(vnx) {
 		_krnl[0] = krnl;
-/*
-    uint64_t addr = _comm_addr;
 
-    krnl.write_register(addr, world_size);
+    uint32_t addr = _comm_addr;
+    mmio_write(_krnl[0], addr, world_size);
     addr += 4;
-    krnl.write_register(addr, _local_rank);
+    mmio_write(_krnl[0], addr, _local_rank);
     for (int i = 0; i < _world_size; i++) {
       string ip = base_ipaddr + to_string(i + start_ip);
       rank_to_ip.insert(pair<int, string>(_rank, ip));
       addr += 4;
-      krnl.write_register(addr, ip_encode(ip_from_rank(i)));
+      mmio_write(_krnl[0], addr, ip_encode(ip_from_rank(i)));
       addr += 4;
       if (_vnx) {
-        krnl.write_register(addr, i);
+        mmio_write(_krnl[0], addr, i);
       } else {
-        krnl.write_register(addr, port_from_rank(i));
+        mmio_write(_krnl[0], addr, port_from_rank(i));
       }
     }
     //  self.communicators.append(communicator)
- */ dump_communicator();
+// dump_communicator();
 }
  int port_from_rank(int rank) {
-    throw std::logic_error("Function not yet implemented");
     return 0;
   }
 
@@ -92,7 +93,7 @@ public:
 		if(_comm_count==0) {
 			_addr = _comm_addr;
 		} else {
-			_addr = _cd.back().addr - EXCHANGE_MEM_OFFSET_ADDRESS;
+//			_addr = _cd.back().addr - EXCHANGE_MEM_OFFSET_ADDRESS;
 		}
 		int nr_ranks =  mmio_read(_krnl[0], _addr);
 		_addr +=4;

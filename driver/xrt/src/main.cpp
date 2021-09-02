@@ -67,15 +67,15 @@ int main(int argc, char *argv[]) {
   f.load_bitstream(bitstream_f);
   t_bitstream.end();
 
-  std::cerr << "Config communicator" << std::endl;
-  t_config_comm.start();
-  f.config_comm();
-  t_config_comm.end();
-
   std::cerr << "Prep RX buffers" << std::endl;
   t_preprxbuffers.start();
   f.prep_rx_buffers(bank_idx);
   t_preprxbuffers.end();
+  
+  std::cerr << "Config communicator" << std::endl;
+  t_config_comm.start();
+  f.config_comm();
+  t_config_comm.end();
 
   std::cerr << "Dump RX buffers" << std::endl;
   t_dump_rx_buffers.start();

@@ -61,7 +61,7 @@ private:
   xrt::kernel _krnl[1];
   communicator _comm;
   const uint64_t _base_addr = HOST_CTRL_ADDRESS_RANGE;
-  uint64_t _comm_addr = 0;
+  uint32_t _comm_addr = 0;
   enum mode _mode;
   int _rank;
   int _size;
@@ -221,7 +221,6 @@ void set_max_dma_transaction_param(const auto value=0) {
       // Write meta data
       addr += 4;
       mmio_write(_krnl[0], addr, bo.address() & 0xffffffff);
-
       addr += 4;
       mmio_write(_krnl[0], addr, (bo.address() >> 32) & 0xffffffff);
 
@@ -232,8 +231,8 @@ void set_max_dma_transaction_param(const auto value=0) {
         addr += 4;
         mmio_write(_krnl[0], addr, 0);
       }
-      _comm_addr = addr + 4;
     }
+      _comm_addr = addr + 4;
       // Start irq-driven RX buffer scheduler and (de)packetizer
       cout << "enable_irq" << endl;
       execute_kernel(config, 1, 0, 0, enable_irq, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
