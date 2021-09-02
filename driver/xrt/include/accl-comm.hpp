@@ -27,6 +27,7 @@
 #include <arpa/inet.h>
 #include <mpi.h>
 #include "accl-consts.hpp"
+#include "accl-util.hpp"
 
 using namespace std;
 
@@ -42,6 +43,7 @@ class communicator {
   map<int, string> rank_to_ip;
   uint64_t _comm_addr;
   int _comm_count = 0;
+  xrt::kernel _krnl[1];
   typedef struct {
 	int addr;
   } comm_data;
@@ -53,6 +55,7 @@ public:
   communicator(int world_size, int local_rank, int rank, uint64_t comm_addr, xrt::kernel krnl, 
                bool vnx = false)
       : _world_size(world_size), _local_rank(local_rank), _rank(rank), _comm_addr(comm_addr), _vnx(vnx) {
+		_krnl[0] = krnl;
 /*
     uint64_t addr = _comm_addr;
 
@@ -84,15 +87,22 @@ public:
   string ip_from_rank(int rank) { return rank_to_ip[rank]; }
 
 	void dump_communicator() {
+		// XXX Why read when we know?
 		int _addr;
 		if(_comm_count==0) {
 			_addr = _comm_addr;
 		} else {
 			_addr = _cd.back().addr - EXCHANGE_MEM_OFFSET_ADDRESS;
 		}
+		int nr_ranks =  mmio_read(_krnl[0], _addr);
 		_addr +=4;
+		int local_ranks = mmio_read(_krnl[0], _addr);
 		cout << "Communicator: local_rank: " << _local_rank << " number of ranks: " << _world_size << endl;
+		for(int i =0; i<nr_ranks; i++) {
+			_addr+=4;
+		}
 	}
+
 
 /*
     def dump_communicator(self):

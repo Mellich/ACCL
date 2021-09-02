@@ -20,6 +20,7 @@
 
 #include "accl-comm.hpp"
 #include "accl-consts.hpp"
+#include "accl-util.hpp"
 
 #include "experimental/xrt_aie.h"
 #include "experimental/xrt_device.h"
@@ -119,13 +120,6 @@ public:
         xrt::kernel::cu_access_mode::exclusive);
   }
 
-  void write_reg(int64_t addr, uint64_t data) {
-    _krnl->write_register(addr, data);
-  }
-
-  const int32_t read_reg(int64_t addr) { return _krnl->read_register(addr); }
-
-
 	void dump_exchange_memory() {
         std::cout << "exchange mem: "<< std::endl;
         const int num_word_per_line=4;
@@ -148,39 +142,39 @@ public:
       int8_t res;
 
       addr += 4;
-      res = mmio_read(addr);
+      res = mmio_read(_krnl[0], addr);
       std::cout << "ADDRL: " << static_cast<int32_t>(res) << std::endl;
 
       addr += 4;
-      res = mmio_read(addr);
+      res = mmio_read(_krnl[0], addr);
       std::cout << "ADDRH: " << static_cast<int32_t>(res) << std::endl;
 
       addr += 4;
-      res = mmio_read(addr);
+      res = mmio_read(_krnl[0], addr);
       std::cout << "MAXSIZE: " << static_cast<int32_t>(res) << std::endl;
 
       addr += 4;
-      res = mmio_read(addr);
+      res = mmio_read(_krnl[0], addr);
       std::cout << "DMA TAG: " << static_cast<int32_t>(res) << std::endl;
 
       addr += 4;
-      res = mmio_read(addr);
+      res = mmio_read(_krnl[0], addr);
       std::cout << "ENQUEUED: " << static_cast<int32_t>(res) << std::endl;
 
       addr += 4;
-      res = mmio_read(addr);
+      res = mmio_read(_krnl[0], addr);
       std::cout << "RX_TAG: " << static_cast<int32_t>(res) << std::endl;
 
       addr += 4;
-      res = mmio_read(addr);
+      res = mmio_read(_krnl[0], addr);
       std::cout << "RESERVED: " << static_cast<int32_t>(res) << std::endl;
 
       addr += 4;
-      res = mmio_read(addr);
+      res = mmio_read(_krnl[0], addr);
       std::cout << "RX_LEN: " << static_cast<int32_t>(res) << std::endl;
 
       addr += 4;
-      res = mmio_read(addr);
+      res = mmio_read(_krnl[0], addr);
       std::cout << "RX_SRC: " << static_cast<int32_t>(res) << std::endl;
     }
   }
@@ -197,7 +191,7 @@ void set_dma_transaction_size_param(const auto value=0) {
 
 
         _segment_size = value;
-        cout << "time taken to start and stop timer " <<  mmio_read(0x0FF4) << endl;
+        cout << "time taken to start and stop timer " <<  mmio_read(_krnl[0], 0x0FF4) << endl;
 }
 
 int32_t get_mmio_addr() {
@@ -215,8 +209,8 @@ void set_max_dma_transaction_param(const auto value=0) {
 
   void prep_rx_buffers(int bank_id = 1) {
     const auto SIZE = _rx_buffer_size / sizeof(int8_t); // 1...
-    int32_t addr = 0; //_base_addr;
-    mmio_write(addr, _nbufs);
+    int32_t addr = 0; //XXX fix this _base_addr;
+    mmio_write(_krnl[0], addr, _nbufs);
     for (int i = 0; i < _nbufs; i++) {
       // Alloc and fill buffer
       const auto bank_grp_idx = i; //_krnl->group_id(i);
@@ -228,17 +222,17 @@ void set_max_dma_transaction_param(const auto value=0) {
 
       // Write meta data
       addr += 4;
-      mmio_write(addr, bo.address() & 0xffffffff);
+      mmio_write(_krnl[0], addr, bo.address() & 0xffffffff);
 
       addr += 4;
-      mmio_write(addr, (bo.address() >> 32) & 0xffffffff);
+      mmio_write(_krnl[0], addr, (bo.address() >> 32) & 0xffffffff);
 
       addr += 4;
-      mmio_write(addr, _rx_buffer_size);
+      mmio_write(_krnl[0], addr, _rx_buffer_size);
 
       for (int i = 3; i < 9; i++) {
         addr += 4;
-        mmio_write(addr, 0);
+        mmio_write(_krnl[0], addr, 0);
       }
       _comm_addr = addr + 4;
     }
@@ -251,7 +245,7 @@ void set_max_dma_transaction_param(const auto value=0) {
       execute_kernel(config, 1, 0, 0, enable_pkt, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
       cout << "enabled_pkt" << endl;
       cout << "ret code "<< get_retcode() << endl;
-      cout << "time taken to enqueue buffers "<< mmio_read(0x0FF4) << endl;
+      cout << "time taken to enqueue buffers "<< mmio_read(_krnl[0], 0x0FF4) << endl;
  
 	set_dma_transaction_size_param(_rx_buffer_size);
 	set_max_dma_transaction_param(10);
@@ -259,17 +253,10 @@ void set_max_dma_transaction_param(const auto value=0) {
   }
 
 
-  const int32_t mmio_read(const int32_t addr) {
-	read_reg(EXCHANGE_MEM_OFFSET_ADDRESS+addr);
-  }
-  
-  void mmio_write(const int32_t addr, const int32_t data) {
-	write_reg(EXCHANGE_MEM_OFFSET_ADDRESS+addr, data);
-  }
 
-  const int32_t get_retcode() { return mmio_read(0xFFC); }
+  const int32_t get_retcode() { return mmio_read(_krnl[0], 0xFFC); }
 
-  const uint32_t get_hwid() { return mmio_read(0xFF8); }
+  const uint32_t get_hwid() { return mmio_read(_krnl[0], 0xFF8); }
 
   // XXX Continue here
   void nop_op(bool run_async = false) { //, waitfor=[]) {
