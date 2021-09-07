@@ -25,3 +25,6 @@ src/CMakeFiles/
 src/Makefile
 src/cmake_install.cmake
 src/accl_demo
+Testing
+CTestTestfile.cmake
+test_*
