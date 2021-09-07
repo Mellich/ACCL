@@ -53,15 +53,15 @@ private:
   std::vector<std::vector<int8_t>> _rx_host_bufs;
   int _segment_size;
   int _nbufs;
-  uint32_t _rx_buffers_adr;
+  int32_t _rx_buffers_adr;
   int _rx_buffer_size;
   std::vector<xrt::bo> _rx_buffer_spares;
   xrt::bo _utility_spare; 
   xrt::device _device;
   xrt::kernel _krnl[1];
   communicator _comm;
-  const uint64_t _base_addr = HOST_CTRL_ADDRESS_RANGE;
-  uint32_t _comm_addr = 0;
+  const int32_t _base_addr = HOST_CTRL_ADDRESS_RANGE;
+  int32_t _comm_addr = 0;
   enum mode _mode;
   int _rank;
   int _size;
@@ -90,7 +90,7 @@ public:
  ~ACCL() {
     std::cout << "Removing CCLO object at " << std::hex << get_mmio_addr()
               << std::endl;
-    execute_kernel(config, 1, 0, 0, reset_periph, 0, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
+//    execute_kernel(config, 1, 0, 0, reset_periph, 0, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
   }
 
   /*
@@ -244,7 +244,8 @@ void set_max_dma_transaction_param(const auto value=0) {
       _comm_addr = addr + 4;
       // Start irq-driven RX buffer scheduler and (de)packetizer
       execute_kernel(config, 1, 0, 0, enable_irq, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
-      execute_kernel(config, 1, 0, 0, enable_pkt, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
+    	cout << "ret code "<< get_retcode() << endl;
+	  execute_kernel(config, 1, 0, 0, enable_pkt, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
       cout << "time taken to enqueue buffers "<< mmio_read(_krnl[0], 0x0FF4) << endl;
  
 	set_dma_transaction_size_param(_rx_buffer_size);
@@ -254,9 +255,9 @@ void set_max_dma_transaction_param(const auto value=0) {
 
 
 
-  const uint32_t get_retcode() { return mmio_read(_krnl[0], 0xFFC); }
+  const int32_t get_retcode() { return mmio_read(_krnl[0], 0xFFC); }
 
-  const uint32_t get_hwid() { return mmio_read(_krnl[0], 0xFF8); }
+  const int32_t get_hwid() { return mmio_read(_krnl[0], 0xFF8); }
 
   // XXX Continue here
   void nop_op(bool run_async = false) { //, waitfor=[]) {

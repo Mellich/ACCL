@@ -58,7 +58,7 @@ class communicator {
 public:
   communicator() {}
 
-  communicator(const int world_size, const int local_rank, const int rank, const uint32_t comm_addr, xrt::kernel krnl, 
+  communicator(const int world_size, const int local_rank, const int rank, const int32_t comm_addr, xrt::kernel krnl, 
                bool vnx = false)
       : _world_size(world_size), _local_rank(local_rank), _rank(rank), _comm_addr(comm_addr), _vnx(vnx) {
 		_krnl[0] = krnl;
