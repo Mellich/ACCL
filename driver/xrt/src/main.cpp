@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
 
   const std::string bitstream_f = argv[1];
   const auto device_idx = atoi(argv[2]);
-  const auto bank_idx = atoi(argv[3]);
+  const auto nbufs = atoi(argv[3]);
   const auto mode = atoi(argv[4]);
 
   int rank, size;
@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
 
   std::cout << "Rank " << rank << std::endl;
   std::cout << "Bitstream " << bitstream_f << std::endl;
-  std::cout << "Bank Idx " << bank_idx << std::endl;
+  std::cout << "Buffer count " << nbufs << std::endl;
 //  std::cout << "Mode " << mode << std::endl;
 
   // Setup
@@ -54,12 +54,11 @@ int main(int argc, char *argv[]) {
       t_preprxbuffers, t_dump_rx_buffers, t_config_comm;
   accl_operation_t op = nop;
 
-  const int nbuf = 16;
-  constexpr int buffer_size = nbuf * 1024;
+  const int buffer_size = nbufs * 1024;
 
   std::cerr << "Construct ACCL" << std::endl;
   t_construct.start();
-  ACCL f(nbuf, buffer_size, device_idx, rank, size, DUAL);
+  ACCL f(nbufs, buffer_size, device_idx, rank, size, DUAL);
   t_construct.end();
 
   std::cerr << "Load bitstream" << std::endl;
@@ -69,7 +68,7 @@ int main(int argc, char *argv[]) {
 
   std::cerr << "Prep RX buffers" << std::endl;
   t_preprxbuffers.start();
- // f.prep_rx_buffers(bank_idx);
+  f.prep_rx_buffers(nbufs);
   t_preprxbuffers.end();
   
   std::cerr << "Config communicator" << std::endl;
@@ -86,7 +85,7 @@ int main(int argc, char *argv[]) {
   t_execute_kernel.start();
   //f.nop_op();
   t_execute_kernel.end();
-/*
+  
   std::cout << "t_construct: " << t_construct.elapsed() << " usecs"
             << std::endl;
   std::cout << "t_bitstream: " << t_bitstream.elapsed() << " usecs"
@@ -99,8 +98,7 @@ int main(int argc, char *argv[]) {
             << std::endl;
   std::cout << "t_execute_kernel: " << t_execute_kernel.elapsed() << " usecs"
             << std::endl;
-*/
-//  std::cout << "HWID:" << hex << f.get_hwid() << std::dec << std::endl;
+  std::cout << "HWID:" << hex << f.get_hwid() << std::dec << std::endl;
   MPI_Finalize();
   return 0;
 }

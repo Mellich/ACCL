@@ -25,7 +25,7 @@ int main() {
         xrt::kernel::cu_access_mode::exclusive);
       
     int *host_ptr;      
-    posix_memalign((void**)&host_ptr,4096,MAX_LENGTH*sizeof(int));
+    int err = posix_memalign((void**)&host_ptr,4096,MAX_LENGTH*sizeof(int));
 
 
       // Sample example filling the allocated host memory

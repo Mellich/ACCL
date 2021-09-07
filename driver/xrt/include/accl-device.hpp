@@ -108,12 +108,8 @@ public:
 //int world_size, int local_rank, int rank, uint64_t comm_addr, xrt::kernel krnl, bool vnx = false
   void load_bitstream(const std::string xclbin) {
 	xrt::uuid uuid;
-   	if(_local_rank==0) {
     	uuid = _device.load_xclbin(xclbin.c_str());	
-	}
 	MPI_Barrier(MPI_COMM_WORLD);
-	int uid = 17;
-	uuid = xrt::uuid(string{uid});
 	cout << "local: " << _local_rank_string<< endl;
 	cout << "uuid: " << uuid<< endl;
 	_krnl[0] = xrt::kernel(
