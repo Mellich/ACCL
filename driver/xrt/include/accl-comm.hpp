@@ -26,6 +26,7 @@
 #include "experimental/xrt_kernel.h"
 #include <arpa/inet.h>
 #include <mpi.h>
+#include <cassert>
 #include "accl-consts.hpp"
 #include "accl-util.hpp"
 
@@ -63,10 +64,11 @@ public:
 		_krnl[0] = krnl;
 
     uint32_t addr = _comm_addr;
-    // communicator = {"local_rank": local_rank, "addr": comm_address, "ranks": ranks, "inbound_seq_number_addr":[0 for _ in ranks], "outbound_seq_number_addr":[0 for _ in ranks], "session_addr":[0 for _ in ranks]}
+	assert(_comm_addr !=0);  
+  // communicator = {"local_rank": local_rank, "addr": comm_address, "ranks": ranks, "inbound_seq_number_addr":[0 for _ in ranks], "outbound_seq_number_addr":[0 for _ in ranks], "session_addr":[0 for _ in ranks]}
 	comm_data cd = {.local_rank = _local_rank, .addr = _comm_addr, .ranks = _world_size};
 	
-	mmio_write(_krnl[0], addr, world_size);
+	mmio_write(_krnl[0], addr, _world_size);
     addr += 4;
     mmio_write(_krnl[0], addr, _local_rank);
     for (int i = 0; i < _world_size; i++) {
@@ -82,10 +84,9 @@ public:
       }
     }
 	_cd.push_back(cd);	 
-	dump_communicator();
 }
  int port_from_rank(int rank) {
-    return 0;
+    return 0; //TODO Implement
   }
 
   uint32_t ip_encode(string ip) { return inet_addr(ip.c_str()); }
@@ -93,8 +94,7 @@ public:
   string ip_from_rank(int rank) { return rank_to_ip[rank]; }
 
 	void dump_communicator() {
-		// XXX Why read when we know?
-		int _addr;
+		uint32_t _addr;
 		if(_comm_count==0) {
 			_addr = _comm_addr;
 		} else {

@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
   f.config_comm();
   t_config_comm.end();
   
-	std::cerr << "Dump communicator" << std::endl;
+  std::cerr << "Dump communicator" << std::endl;
   t_dump_comm.start();
   f.get_comm().dump_communicator();
   t_dump_comm.end();
@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
             << std::endl;
   std::cout << "t_execute_kernel: " << t_execute_kernel.elapsed() << " usecs"
             << std::endl;
-  std::cout << "HWID:" << hex << f.get_hwid() << std::dec << std::endl;
+  std::cout << "HWID: " << hex << f.get_hwid() << std::dec << std::endl;
   MPI_Finalize();
   return 0;
 }

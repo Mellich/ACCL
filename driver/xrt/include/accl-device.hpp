@@ -53,7 +53,7 @@ private:
   std::vector<std::vector<int8_t>> _rx_host_bufs;
   int _segment_size;
   int _nbufs;
-  int _rx_buffers_adr;
+  uint32_t _rx_buffers_adr;
   int _rx_buffer_size;
   std::vector<xrt::bo> _rx_buffer_spares;
   xrt::bo _utility_spare; 
@@ -77,6 +77,8 @@ public:
     	get_xilinx_device(idx);
     	_local_rank_string = string(getenv("OMPI_COMM_WORLD_LOCAL_RANK"));
     	_local_rank = stoi(_local_rank_string);
+
+
   }
 
   template <typename... Args> auto execute_kernel(Args... args) {
@@ -116,6 +118,9 @@ public:
         _device, uuid,
         "ccl_offload:ccl_offload_"+string{_local_rank_string},
         xrt::kernel::cu_access_mode::exclusive);
+				
+//		mmio_write(_krnl[0], 4, 0xdeadbeef);
+//		cout << "REGISTER TEST " <<hex << mmio_read(_krnl[0], 4) << dec << endl;;
   }
 
   communicator get_comm() {
@@ -136,7 +141,7 @@ public:
 
 
   void dump_rx_buffers() {
-    int32_t addr = _base_addr;
+    uint32_t addr = _base_addr;
     for (int i = 0; i < _nbufs; i++) {
       std::cout << "===========================" << std::endl;
       std::cout << "Dumping spare RX buffer: " << i << std::endl;
@@ -211,7 +216,7 @@ void set_max_dma_transaction_param(const auto value=0) {
 
   void prep_rx_buffers(int bank_id = 1) {
     const auto SIZE = _rx_buffer_size / sizeof(int8_t); // 1...
-    int32_t addr = 0; //XXX fix this _base_addr;
+    int32_t addr = 0; 
     mmio_write(_krnl[0], addr, _nbufs);
     for (int i = 0; i < _nbufs; i++) {
       // Alloc and fill buffer
@@ -238,14 +243,8 @@ void set_max_dma_transaction_param(const auto value=0) {
     }
       _comm_addr = addr + 4;
       // Start irq-driven RX buffer scheduler and (de)packetizer
-      cout << "enable_irq" << endl;
       execute_kernel(config, 1, 0, 0, enable_irq, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
-      cout << "enabled_irq" << endl;
-      cout << "ret code "<< get_retcode() << endl;
-	  cout << "enable_pkt" << endl;
       execute_kernel(config, 1, 0, 0, enable_pkt, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
-      cout << "enabled_pkt" << endl;
-      cout << "ret code "<< get_retcode() << endl;
       cout << "time taken to enqueue buffers "<< mmio_read(_krnl[0], 0x0FF4) << endl;
  
 	set_dma_transaction_size_param(_rx_buffer_size);

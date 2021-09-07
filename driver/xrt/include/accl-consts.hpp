@@ -21,7 +21,7 @@ const auto DUMMY_ADDR = 0x0;
 const auto TAG_ANY = 0xFFFFFFFF;
 const auto EXCHANGE_MEM_OFFSET_ADDRESS = 0x1000;
 const auto EXCHANGE_MEM_ADDRESS_RANGE = 0x1000;
-const auto HOST_CTRL_ADDRESS_RANGE = 0x800;
+const uint32_t HOST_CTRL_ADDRESS_RANGE = 0x800;
 
 enum accl_fgFunc {
   enable_irq = 0,
