@@ -88,7 +88,7 @@ public:
  ~ACCL() {
     std::cout << "Removing CCLO object at " << std::hex << get_mmio_addr()
               << std::endl;
-//   execute_kernel(config, 1, 0, 0, reset_periph, 0, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
+    execute_kernel(config, 1, 0, 0, reset_periph, 0, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
   }
 
   /*
@@ -117,6 +117,10 @@ public:
         "ccl_offload:ccl_offload_"+string{_local_rank_string},
         xrt::kernel::cu_access_mode::exclusive);
   }
+
+  communicator get_comm() {
+		return _comm;
+	}
 
 	void dump_exchange_memory() {
         std::cout << "exchange mem: "<< std::endl;

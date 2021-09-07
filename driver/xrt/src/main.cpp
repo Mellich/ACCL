@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
 
   // Setup
   Timer t_construct, t_bitstream, t_read_reg, t_write_reg, t_execute_kernel,
-      t_preprxbuffers, t_dump_rx_buffers, t_config_comm;
+      t_preprxbuffers, t_dump_rx_buffers, t_config_comm, t_dump_comm;
   accl_operation_t op = nop;
 
   const int buffer_size = nbufs * 1024;
@@ -71,15 +71,21 @@ int main(int argc, char *argv[]) {
   f.prep_rx_buffers(nbufs);
   t_preprxbuffers.end();
   
-  std::cerr << "Config communicator" << std::endl;
-  t_config_comm.start();
- // f.config_comm();
-  t_config_comm.end();
-
   std::cerr << "Dump RX buffers" << std::endl;
   t_dump_rx_buffers.start();
 //  f.dump_rx_buffers();
   t_dump_rx_buffers.end();
+  
+  std::cerr << "Config communicator" << std::endl;
+  t_config_comm.start();
+  f.config_comm();
+  t_config_comm.end();
+  
+	std::cerr << "Dump communicator" << std::endl;
+  t_dump_comm.start();
+  f.get_comm().dump_communicator();
+  t_dump_comm.end();
+
 
   std::cerr << "NOP" << std::endl;
   t_execute_kernel.start();
