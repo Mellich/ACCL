@@ -15,8 +15,10 @@
 #
 # *******************************************************************************/
 
-project(xlnx-dacusr)
+project(xlnx-accl)
 cmake_minimum_required(VERSION 3.5)
+
+enable_testing()
 
 set(CMAKE_CXX_STANDARD 14)
 
@@ -27,6 +29,10 @@ link_directories($ENV{XILINX_XRT}/lib)
 link_libraries(xilinxopencl)
 link_libraries(xrt_coreutil)
 link_libraries(xrt_core)
+include_directories(${MPI_CXX_INCLUDE_PATH})
+link_libraries(${MPI_CXX_LIBRARIES} uuid)
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} ${MPI_CXX_LINK_FLAGS})
 include_directories($ENV{XILINX_XRT}/include)
 include_directories(include)
 add_subdirectory(src)
+add_subdirectory(test)

@@ -88,7 +88,7 @@ public:
  ~ACCL() {
     std::cout << "Removing CCLO object at " << std::hex << get_mmio_addr()
               << std::endl;
-   execute_kernel(config, 1, 0, 0, reset_periph, 0, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
+//   execute_kernel(config, 1, 0, 0, reset_periph, 0, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
   }
 
   /*
@@ -107,12 +107,16 @@ public:
   void config_comm() { _comm = {_size, _local_rank, _rank, _comm_addr, _krnl[0], false}; }
 //int world_size, int local_rank, int rank, uint64_t comm_addr, xrt::kernel krnl, bool vnx = false
   void load_bitstream(const std::string xclbin) {
-	//xrt::uuid uuid;
-   	//if(local_rank==0) {
-    	auto uuid = _device.load_xclbin(xclbin.c_str());
-    //}
-    MPI_Barrier(MPI_COMM_WORLD);
-    _krnl[_local_rank] = xrt::kernel(
+	xrt::uuid uuid;
+   	if(_local_rank==0) {
+    	uuid = _device.load_xclbin(xclbin.c_str());	
+	}
+	MPI_Barrier(MPI_COMM_WORLD);
+	int uid = 17;
+	uuid = xrt::uuid(string{uid});
+	cout << "local: " << _local_rank_string<< endl;
+	cout << "uuid: " << uuid<< endl;
+	_krnl[0] = xrt::kernel(
         _device, uuid,
         "ccl_offload:ccl_offload_"+string{_local_rank_string},
         xrt::kernel::cu_access_mode::exclusive);

@@ -69,24 +69,24 @@ int main(int argc, char *argv[]) {
 
   std::cerr << "Prep RX buffers" << std::endl;
   t_preprxbuffers.start();
-  f.prep_rx_buffers(bank_idx);
+ // f.prep_rx_buffers(bank_idx);
   t_preprxbuffers.end();
   
   std::cerr << "Config communicator" << std::endl;
   t_config_comm.start();
-  f.config_comm();
+ // f.config_comm();
   t_config_comm.end();
 
   std::cerr << "Dump RX buffers" << std::endl;
   t_dump_rx_buffers.start();
-  f.dump_rx_buffers();
+//  f.dump_rx_buffers();
   t_dump_rx_buffers.end();
 
   std::cerr << "NOP" << std::endl;
   t_execute_kernel.start();
   //f.nop_op();
   t_execute_kernel.end();
-
+/*
   std::cout << "t_construct: " << t_construct.elapsed() << " usecs"
             << std::endl;
   std::cout << "t_bitstream: " << t_bitstream.elapsed() << " usecs"
@@ -99,8 +99,8 @@ int main(int argc, char *argv[]) {
             << std::endl;
   std::cout << "t_execute_kernel: " << t_execute_kernel.elapsed() << " usecs"
             << std::endl;
-
-  std::cout << "HWID:" << hex << f.get_hwid() << std::dec << std::endl;
+*/
+//  std::cout << "HWID:" << hex << f.get_hwid() << std::dec << std::endl;
   MPI_Finalize();
   return 0;
 }

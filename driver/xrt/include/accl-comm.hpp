@@ -38,7 +38,9 @@ class communicator {
 	int32_t local_rank;
 	int32_t addr;
 	int32_t ranks;
+	int32_t session_addr;
 	vector<int32_t> inbound_seq_number_addr;	
+	vector<int32_t> outbound_seq_number_addr;	
   };
   string base_ipaddr = "197.11.27.";
   int start_ip = 1;
@@ -47,7 +49,7 @@ class communicator {
   int _rank;
   bool _vnx;
   map<int, string> rank_to_ip;
-  uint64_t _comm_addr;
+  int32_t _comm_addr;
   int _comm_count = 0;
   xrt::kernel _krnl[1];
   vector<comm_data> _cd;
@@ -61,7 +63,10 @@ public:
 		_krnl[0] = krnl;
 
     uint32_t addr = _comm_addr;
-    mmio_write(_krnl[0], addr, world_size);
+    // communicator = {"local_rank": local_rank, "addr": comm_address, "ranks": ranks, "inbound_seq_number_addr":[0 for _ in ranks], "outbound_seq_number_addr":[0 for _ in ranks], "session_addr":[0 for _ in ranks]}
+	comm_data cd = {.local_rank = _local_rank, .addr = _comm_addr, .ranks = _world_size};
+	
+	mmio_write(_krnl[0], addr, world_size);
     addr += 4;
     mmio_write(_krnl[0], addr, _local_rank);
     for (int i = 0; i < _world_size; i++) {
@@ -76,8 +81,8 @@ public:
         mmio_write(_krnl[0], addr, port_from_rank(i));
       }
     }
-    //  self.communicators.append(communicator)
-// dump_communicator();
+	_cd.push_back(cd);	 
+	dump_communicator();
 }
  int port_from_rank(int rank) {
     return 0;
@@ -93,13 +98,15 @@ public:
 		if(_comm_count==0) {
 			_addr = _comm_addr;
 		} else {
-//			_addr = _cd.back().addr - EXCHANGE_MEM_OFFSET_ADDRESS;
+			_addr = _cd.back().addr - EXCHANGE_MEM_OFFSET_ADDRESS;
 		}
 		int nr_ranks =  mmio_read(_krnl[0], _addr);
 		_addr +=4;
 		int local_ranks = mmio_read(_krnl[0], _addr);
 		cout << "Communicator: local_rank: " << _local_rank << " number of ranks: " << _world_size << endl;
 		for(int i =0; i<nr_ranks; i++) {
+			int ip_addr_rank = mmio_read(_krnl[0], _addr);
+			cout << "ip_addr_rank: " << ip_addr_rank << endl; 
 			_addr+=4;
 		}
 	}
