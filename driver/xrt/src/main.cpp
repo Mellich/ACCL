@@ -78,12 +78,12 @@ int main(int argc, char *argv[]) {
   
   std::cerr << "Config communicator" << std::endl;
   t_config_comm.start();
-  f.config_comm();
+//  f.config_comm();
   t_config_comm.end();
   
   std::cerr << "Dump communicator" << std::endl;
   t_dump_comm.start();
-  f.get_comm().dump_communicator();
+ // f.get_comm().dump_communicator();
   t_dump_comm.end();
 
 

@@ -9,10 +9,10 @@ void write_reg(xrt::kernel _krnl, const int32_t addr, const int32_t data) {
     _krnl.write_register(addr, data);
 }
 
-const int32_t read_reg(xrt::kernel _krnl, const int32_t addr) { return _krnl.read_register(addr); }
+const auto read_reg(xrt::kernel _krnl, const auto addr) { return _krnl.read_register(addr); }
 
-const int32_t mmio_read(xrt::kernel _krnl, const int32_t addr) {
-	read_reg(_krnl, EXCHANGE_MEM_OFFSET_ADDRESS+addr);
+const auto mmio_read(xrt::kernel _krnl, const auto addr) {
+	return read_reg(_krnl, EXCHANGE_MEM_OFFSET_ADDRESS+addr);
 }
   
 void mmio_write(xrt::kernel _krnl, const int32_t addr, const int32_t data) {

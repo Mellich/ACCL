@@ -88,7 +88,7 @@ public:
   }
  
  ~ACCL() {
-    std::cout << "Removing CCLO object at " << std::hex << get_mmio_addr()
+    std::cout << "Removing CCLO object at " << std::hex << get_mmio_addr() << dec
               << std::endl;
 //    execute_kernel(config, 1, 0, 0, reset_periph, 0, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
   }
@@ -109,15 +109,13 @@ public:
   void config_comm() { _comm = {_size, _local_rank, _rank, _comm_addr, _krnl[0], false}; }
 //int world_size, int local_rank, int rank, uint64_t comm_addr, xrt::kernel krnl, bool vnx = false
   void load_bitstream(const std::string xclbin) {
-	xrt::uuid uuid;
-    	uuid = _device.load_xclbin(xclbin.c_str());	
+    auto uuid = _device.load_xclbin(xclbin.c_str());	
 	MPI_Barrier(MPI_COMM_WORLD);
-	cout << "local: " << _local_rank_string<< endl;
-	cout << "uuid: " << uuid<< endl;
 	_krnl[0] = xrt::kernel(
         _device, uuid,
         "ccl_offload:ccl_offload_"+string{_local_rank_string},
         xrt::kernel::cu_access_mode::exclusive);
+	MPI_Barrier(MPI_COMM_WORLD);
 				
 //		mmio_write(_krnl[0], 4, 0xdeadbeef);
 //		cout << "REGISTER TEST " <<hex << mmio_read(_krnl[0], 4) << dec << endl;;
@@ -141,7 +139,7 @@ public:
 
 
   void dump_rx_buffers() {
-    uint32_t addr = _base_addr;
+    int32_t addr = _base_addr;
     for (int i = 0; i < _nbufs; i++) {
       std::cout << "===========================" << std::endl;
       std::cout << "Dumping spare RX buffer: " << i << std::endl;
@@ -195,6 +193,7 @@ void set_dma_transaction_size_param(const auto value=0) {
             return;
 	}
      execute_kernel(config, value, 0, 0, set_dma_transaction_size, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
+    	cout << "ret code "<< get_retcode() << endl;
 
 
         _segment_size = value;
@@ -202,7 +201,7 @@ void set_dma_transaction_size_param(const auto value=0) {
 }
 
 int32_t get_mmio_addr() {
-    return 0; // XXX Implement this
+    return mmio_read(_krnl[0], _base_addr);
 }
 
 
@@ -212,6 +211,7 @@ void set_max_dma_transaction_param(const auto value=0) {
             return;
 	}
     execute_kernel(config, value, 0, 0, set_max_dma_transactions, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
+    	cout << "ret code "<< get_retcode() << endl;
 }
 
   void prep_rx_buffers(int bank_id = 1) {
@@ -246,6 +246,7 @@ void set_max_dma_transaction_param(const auto value=0) {
       execute_kernel(config, 1, 0, 0, enable_irq, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
     	cout << "ret code "<< get_retcode() << endl;
 	  execute_kernel(config, 1, 0, 0, enable_pkt, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
+    	cout << "ret code "<< get_retcode() << endl;
       cout << "time taken to enqueue buffers "<< mmio_read(_krnl[0], 0x0FF4) << endl;
  
 	set_dma_transaction_size_param(_rx_buffer_size);
