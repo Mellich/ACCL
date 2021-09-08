@@ -61,8 +61,7 @@ public:
   communicator(const int world_size, const int local_rank, const int rank, const int32_t comm_addr, xrt::kernel krnl, 
                bool vnx = false)
       : _world_size(world_size), _local_rank(local_rank), _rank(rank), _comm_addr(comm_addr), _vnx(vnx) {
-		_krnl[0] = krnl;
-
+	_krnl[0] = krnl;		
     uint32_t addr = _comm_addr;
 	assert(_comm_addr !=0);  
   // communicator = {"local_rank": local_rank, "addr": comm_address, "ranks": ranks, "inbound_seq_number_addr":[0 for _ in ranks], "outbound_seq_number_addr":[0 for _ in ranks], "session_addr":[0 for _ in ranks]}

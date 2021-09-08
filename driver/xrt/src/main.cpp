@@ -21,7 +21,7 @@
 #include <mpi.h>
 #include <vector>
 
-int check_usage(int argc, char *argv[]) {
+void check_usage(int argc, char *argv[]) {
   if (argc < 4) {
     std::cerr << "Usage: " << argv[0]
               << " <bitstream> <device_idx> <bank_id>" << std::endl;
@@ -73,23 +73,24 @@ int main(int argc, char *argv[]) {
   
   std::cerr << "Dump RX buffers" << std::endl;
   t_dump_rx_buffers.start();
-//  f.dump_rx_buffers();
+  f.dump_rx_buffers();
   t_dump_rx_buffers.end();
   
   std::cerr << "Config communicator" << std::endl;
   t_config_comm.start();
-//  f.config_comm();
+  f.config_comm();
   t_config_comm.end();
   
   std::cerr << "Dump communicator" << std::endl;
   t_dump_comm.start();
- // f.get_comm().dump_communicator();
+  f.get_comm().dump_communicator();
   t_dump_comm.end();
 
 
   std::cerr << "NOP" << std::endl;
   t_execute_kernel.start();
-  //f.nop_op();
+  f.nop_op();
+  std::cout << "Return code: " << f.get_retcode() << std::endl;
   t_execute_kernel.end();
   
   std::cout << "t_construct: " << t_construct.elapsed() << " usecs"

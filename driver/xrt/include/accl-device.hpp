@@ -41,6 +41,7 @@ bool compatible_size(size_t nbytes, accl_reduce_func type) {
   } else if (type == dp || type == i64) {
     return (nbytes % 8) == 0 ? true : false;
   }
+  return false;
 }
 
 enum network_protocol_t { TCP, UDP, ROCE };
@@ -77,8 +78,6 @@ public:
     	get_xilinx_device(idx);
     	_local_rank_string = string(getenv("OMPI_COMM_WORLD_LOCAL_RANK"));
     	_local_rank = stoi(_local_rank_string);
-
-
   }
 
   template <typename... Args> auto execute_kernel(Args... args) {
@@ -90,7 +89,7 @@ public:
  ~ACCL() {
     std::cout << "Removing CCLO object at " << std::hex << get_mmio_addr() << dec
               << std::endl;
-//    execute_kernel(config, 1, 0, 0, reset_periph, 0, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
+    execute_kernel(config, 1, 0, 0, reset_periph, 0, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
   }
 
   /*
@@ -193,7 +192,6 @@ void set_dma_transaction_size_param(const auto value=0) {
             return;
 	}
      execute_kernel(config, value, 0, 0, set_dma_transaction_size, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
-    	cout << "ret code "<< get_retcode() << endl;
 
 
         _segment_size = value;
@@ -211,11 +209,10 @@ void set_max_dma_transaction_param(const auto value=0) {
             return;
 	}
     execute_kernel(config, value, 0, 0, set_max_dma_transactions, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
-    	cout << "ret code "<< get_retcode() << endl;
 }
 
   void prep_rx_buffers(int bank_id = 1) {
-    const auto SIZE = _rx_buffer_size / sizeof(int8_t); // 1...
+    //const auto SIZE = _rx_buffer_size / sizeof(int8_t); // 1...
     int32_t addr = 0; 
     mmio_write(_krnl[0], addr, _nbufs);
     for (int i = 0; i < _nbufs; i++) {
@@ -244,9 +241,7 @@ void set_max_dma_transaction_param(const auto value=0) {
       _comm_addr = addr + 4;
       // Start irq-driven RX buffer scheduler and (de)packetizer
       execute_kernel(config, 1, 0, 0, enable_irq, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
-    	cout << "ret code "<< get_retcode() << endl;
 	  execute_kernel(config, 1, 0, 0, enable_pkt, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
-    	cout << "ret code "<< get_retcode() << endl;
       cout << "time taken to enqueue buffers "<< mmio_read(_krnl[0], 0x0FF4) << endl;
  
 	set_dma_transaction_size_param(_rx_buffer_size);
@@ -262,10 +257,7 @@ void set_max_dma_transaction_param(const auto value=0) {
 
   // XXX Continue here
   void nop_op(bool run_async = false) { //, waitfor=[]) {
-	 auto handle = _krnl[0](nop, 0, 0, 0, 0, 0, 0, 0, _rx_buffer_spares[0],
-                        _rx_buffer_spares[0]); //, waitfor=waitfor);
-    handle.start();
-    handle.wait();
+     execute_kernel(nop, 1, 0, 0, 0, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
   }
 
   auto enable_profiling(bool run_async=false) {//, waitfor=[]) {
