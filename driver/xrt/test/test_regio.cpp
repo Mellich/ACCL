@@ -36,8 +36,10 @@ int main (int argc, char *argv[]) {
   f.load_bitstream(bitstream_f);
   t_bitstream.end();
 
-  cout << hex <<  "HW ID: "<< f.get_hwid() << endl;
-
+  int error = 0;
+  if (f.get_hwid()!= 0xcafebabe) {
+		error++;
+  }
 	MPI_Finalize();
-	return 0;
+	return error;
 }

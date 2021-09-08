@@ -116,8 +116,6 @@ public:
         xrt::kernel::cu_access_mode::exclusive);
 	MPI_Barrier(MPI_COMM_WORLD);
 				
-//		mmio_write(_krnl[0], 4, 0xdeadbeef);
-//		cout << "REGISTER TEST " <<hex << mmio_read(_krnl[0], 4) << dec << endl;;
   }
 
   communicator get_comm() {
