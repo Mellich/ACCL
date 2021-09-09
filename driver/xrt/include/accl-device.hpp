@@ -136,8 +136,9 @@ public:
 
 
   void dump_rx_buffers() {
-    int32_t addr = _base_addr;
-    for (int i = 0; i < _nbufs; i++) {
+    int32_t addr = 0; //_base_addr;
+    //std::cout << mmio_read(_krnl[0], addr) << std::endl;
+	for (int i = 0; i < _nbufs; i++) {
       std::cout << "===========================" << std::endl;
       std::cout << "Dumping spare RX buffer: " << i << std::endl;
       std::cout << "===========================" << std::endl;

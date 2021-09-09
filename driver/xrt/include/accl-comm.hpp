@@ -104,9 +104,9 @@ public:
 		int local_ranks = mmio_read(_krnl[0], _addr);
 		cout << "Communicator: local_rank: " << _local_rank << " number of ranks: " << _world_size << endl;
 		for(int i =0; i<nr_ranks; i++) {
-			int ip_addr_rank = mmio_read(_krnl[0], _addr);
-			cout << "ip_addr_rank: " << ip_addr_rank << endl; 
 			_addr+=4;
+			int32_t ip_addr_rank = mmio_read(_krnl[0], _addr);
+			cout << "ip_addr_rank: " << ip_addr_rank << endl; 
 		}
 	}
 
