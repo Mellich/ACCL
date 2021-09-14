@@ -42,7 +42,9 @@ class communicator {
 	int32_t session_addr;
 	vector<int32_t> inbound_seq_number_addr;	
 	vector<int32_t> outbound_seq_number_addr;	
-  };
+	};
+    struct sockaddr_in sa;
+	char str[INET_ADDRSTRLEN];
   string base_ipaddr = "197.11.27.";
   int start_ip = 1;
   int _world_size;
@@ -79,16 +81,34 @@ public:
       if (_vnx) {
         mmio_write(_krnl[0], addr, i);
       } else {
+		cout << "writing " << port_from_rank(i) << " to " << addr<< endl;
         mmio_write(_krnl[0], addr, port_from_rank(i));
       }
-    }
+		addr += 4;
+        mmio_write(_krnl[0], addr, 0);
+        cd.inbound_seq_number_addr.push_back(addr);
+		addr += 4;
+		mmio_write(_krnl[0], addr, 0);
+        cd.outbound_seq_number_addr.push_back(addr);
+  		addr += 4;
+		mmio_write(_krnl[0], addr, 0xFFFFFFFF);
+  		cd.session_addr = addr;	
+	}
 	_cd.push_back(cd);	 
 }
- int port_from_rank(int rank) {
-    return 0; //TODO Implement
+ int32_t port_from_rank(int rank) {
+    return 16; //TODO Implement
   }
 
-  uint32_t ip_encode(string ip) { return inet_addr(ip.c_str()); }
+  unsigned long ip_encode(string ip) { 
+	inet_pton(AF_INET, ip.c_str(), &(sa.sin_addr));
+	return sa.sin_addr.s_addr; 
+  }
+  
+  string ip_decode(auto ip) { 
+	inet_ntop(AF_INET, &(sa.sin_addr), str, INET_ADDRSTRLEN);	
+	return string(str);
+  }
 
   string ip_from_rank(int rank) { return rank_to_ip[rank]; }
 
@@ -106,7 +126,15 @@ public:
 		for(int i =0; i<nr_ranks; i++) {
 			_addr+=4;
 			int32_t ip_addr_rank = mmio_read(_krnl[0], _addr);
-			cout << "ip_addr_rank: " << ip_addr_rank << endl; 
+			_addr+=4;
+			auto port  = mmio_read(_krnl[0], _addr);
+			_addr+=4;
+			auto inbound_seq_number  = mmio_read(_krnl[0], _addr);
+			_addr+=4;
+			auto outbound_seq_number  = mmio_read(_krnl[0], _addr);
+			_addr+=4;
+			auto session  = mmio_read(_krnl[0], _addr);	
+			cout << i << " " << ip_addr_rank << " " << port << " " << inbound_seq_number << " " << outbound_seq_number << endl;
 		}
 	}
 
