@@ -96,8 +96,9 @@ public:
 	}
 	_cd.push_back(cd);	 
 }
- int32_t port_from_rank(int rank) {
-    return 16; //TODO Implement
+
+  int32_t port_from_rank(int rank) {
+    return 16; // XXX What is port?
   }
 
   unsigned long ip_encode(string ip) { 
@@ -134,7 +135,7 @@ public:
 			auto outbound_seq_number  = mmio_read(_krnl[0], _addr);
 			_addr+=4;
 			auto session  = mmio_read(_krnl[0], _addr);	
-			cout << i << " " << ip_addr_rank << " " << port << " " << inbound_seq_number << " " << outbound_seq_number << endl;
+			cout << i << " " << ip_decode(ip_addr_rank) << " " << port << " " << inbound_seq_number << " " << outbound_seq_number << endl;
 		}
 	}
 

@@ -2,7 +2,7 @@
 
 int main() {
 	communicator cd;
-	string ip = "192.168.2.3";
+	string ip = "192.168.2.25";
 
 	auto ip_stored = cd.ip_encode(ip);
 	auto ip_restored = cd.ip_decode(ip_stored);
