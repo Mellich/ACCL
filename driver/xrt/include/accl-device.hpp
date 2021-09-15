@@ -137,49 +137,51 @@ public:
 
   void dump_rx_buffers() {
     uint32_t addr = 0; //_base_addr;
-    //std::cout << mmio_read(_krnl[0], addr) << std::endl;
+    std::cout << "Dumping nbufs: " <<  mmio_read(_krnl[0], addr) << std::endl;
 	for (int i = 0; i < _nbufs; i++) {
-      std::cout << "===========================" << std::endl;
-      std::cout << "Dumping spare RX buffer: " << i << std::endl;
-      std::cout << "===========================" << std::endl;
       uint32_t res;
+      addr += 4;
+      const auto addrl = mmio_read(_krnl[0], addr);
 
       addr += 4;
-      res = mmio_read(_krnl[0], addr);
-      std::cout << "ADDRL: " << res << std::endl;
+      const auto addrh = mmio_read(_krnl[0], addr);
 
       addr += 4;
-      res = mmio_read(_krnl[0], addr);
-      std::cout << "ADDRH: " << res << std::endl;
+      auto maxsize = mmio_read(_krnl[0], addr);
 
       addr += 4;
-      res = mmio_read(_krnl[0], addr);
-      std::cout << "MAXSIZE: " << res << std::endl;
+      const auto dmatag = mmio_read(_krnl[0], addr);
 
       addr += 4;
-      res = mmio_read(_krnl[0], addr);
-      std::cout << "DMA TAG: " << res << std::endl;
+      const auto rstatus = mmio_read(_krnl[0], addr);
 
       addr += 4;
-      res = mmio_read(_krnl[0], addr);
-      std::cout << "ENQUEUED: " << res << std::endl;
+      const auto rxtag = mmio_read(_krnl[0], addr);
 
       addr += 4;
-      res = mmio_read(_krnl[0], addr);
-      std::cout << "RX_TAG: " << res << std::endl;
+      const auto rxlen = mmio_read(_krnl[0], addr);
 
       addr += 4;
-      res = mmio_read(_krnl[0], addr);
-      std::cout << "RESERVED: " << res << std::endl;
-
-      addr += 4;
-      res = mmio_read(_krnl[0], addr);
-      std::cout << "RX_LEN: " << res << std::endl;
-
-      addr += 4;
-      res = mmio_read(_krnl[0], addr);
-      std::cout << "RX_SRC: " << res << std::endl;
-    }
+      const auto rxsrc = mmio_read(_krnl[0], addr);
+      
+	  addr += 4;
+      const auto seq = mmio_read(_krnl[0], addr);
+    
+		string status;
+		if(rstatus == 0) {
+                status =  "NOT USED";
+		}
+            else if (rstatus == 1) {
+                status = "ENQUEUED";
+			} else if (rstatus == 2) {
+                status = "RESERVED";
+			} else {
+                status = "UNKNOWN";
+			}
+    string content = "content";
+	if(maxsize==0) { maxsize = 1;} // XXX DEBUG
+	std::cout << "SPARE RX BUFFER " << i <<":\t ADDR: "<< hex << addrh << " " << addrl <<" \t STATUS: "<< dec << status << " \t OCCUPACY: "<< rxlen/maxsize << " \t DMA TAG: " << hex << dmatag << " \t  MPI TAG:"<< rxtag <<" \t SEQ: "<< seq <<" \t SRC: "<< rxsrc<<" \t content "<<content << endl;
+	}
   }
 
 void set_dma_transaction_size_param(const auto value=0) {
