@@ -50,5 +50,13 @@ def test_self_sendrecv():
 */
 
 int main() {
+	cout << "========================================" << endl;
+	cout << "Self Send/Recv" << endl;
+	cout << "========================================" << endl;
+	for(int j=0; j<naccel; j++) {
+		auto src_rank = j;
+		auto dst_rank = j;
+		auto tag = 5+10*j;
+	}
 	return 0;
 }

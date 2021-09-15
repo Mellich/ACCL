@@ -276,4 +276,58 @@ void set_max_dma_transaction_param(const auto value=0) {
 		return handle;		
 	}
 
+
+	auto send(auto comm_id, auto srcbuf, auto dst, auto tag=TAG_ANY, bool from_fpga=false) {
+		if(srcbuf.size()==0) {
+			cerr << "Attempt to send 0 size buffer"<<endl;
+			return;
+		}
+		if(from_fpga==false) {
+			srcbuf.sync(XCL_BO_SYNC_BO_TO_DEVICE);
+		}
+		auto handle = execute_kernel(sendop, _rx_buffer_size/sizeof(int32_t), comm_id, dst, 0, tag, 0, 0, 0, srcbuf.address(), DUMMY_ADDR, DUMMY_ADDR);
+		return handle;
+	}
+
+	auto recv(auto comm_id, auto dstbuf, auto src, auto tag=TAG_ANY, bool to_fpga=false, bool run_async=false) {
+		if(to_fpga==false && run_async) {
+			cerr << "ACCL: async run returns data on FPGA, user must sync_from_device() after waiting" << endl;
+		}
+		if(dstbuf.size()==0) {
+			cerr << "Attempt to recv to 0 size buffer"<<endl;
+			return;
+		}
+		auto handle = execute_kernel(recvop, _rx_buffer_size/sizeof(int32_t), comm_id, src, 0, tag, 0,0,0, dstbuf.address(), DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
+		return handle;
+	}
+	/*
+    @self_check_return_value
+    def send(self, comm_id, srcbuf, dst, tag=TAG_ANY, from_fpga=False, run_async=False, waitfor=[]):
+        if srcbuf.nbytes == 0:
+            warnings.warn("zero size buffer")
+            return
+        if not from_fpga:
+            srcbuf.sync_to_device()
+        handle = self.start(scenario=CCLOp.send, len=srcbuf.nbytes, comm=self.communicators[comm_id]["addr"], root_src_dst=dst, tag=tag, addr_0=srcbuf, waitfor=waitfor)
+        if run_async:
+            return handle 
+        else:
+            handle.wait()
+    
+    @self_check_return_value
+    def recv(self, comm_id, dstbuf, src, tag=TAG_ANY, to_fpga=False, run_async=False, waitfor=[]):
+        if not to_fpga and run_async:
+            warnings.warn("ACCL: async run returns data on FPGA, user must sync_from_device() after waiting")
+        if dstbuf.nbytes == 0:
+            warnings.warn("zero size buffer")
+            return
+        handle = self.start(scenario=CCLOp.recv, len=dstbuf.nbytes, comm=self.communicators[comm_id]["addr"], root_src_dst=src, tag=tag, addr_0=dstbuf, waitfor=waitfor)
+        if run_async:
+            return handle
+        else:
+            handle.wait()
+        if not to_fpga:
+            dstbuf.sync_from_device()
+	*/
+
 };
