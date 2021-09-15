@@ -136,49 +136,49 @@ public:
 
 
   void dump_rx_buffers() {
-    int32_t addr = 0; //_base_addr;
+    uint32_t addr = 0; //_base_addr;
     //std::cout << mmio_read(_krnl[0], addr) << std::endl;
 	for (int i = 0; i < _nbufs; i++) {
       std::cout << "===========================" << std::endl;
       std::cout << "Dumping spare RX buffer: " << i << std::endl;
       std::cout << "===========================" << std::endl;
-      int8_t res;
+      uint32_t res;
 
       addr += 4;
       res = mmio_read(_krnl[0], addr);
-      std::cout << "ADDRL: " << static_cast<int32_t>(res) << std::endl;
+      std::cout << "ADDRL: " << res << std::endl;
 
       addr += 4;
       res = mmio_read(_krnl[0], addr);
-      std::cout << "ADDRH: " << static_cast<int32_t>(res) << std::endl;
+      std::cout << "ADDRH: " << res << std::endl;
 
       addr += 4;
       res = mmio_read(_krnl[0], addr);
-      std::cout << "MAXSIZE: " << static_cast<int32_t>(res) << std::endl;
+      std::cout << "MAXSIZE: " << res << std::endl;
 
       addr += 4;
       res = mmio_read(_krnl[0], addr);
-      std::cout << "DMA TAG: " << static_cast<int32_t>(res) << std::endl;
+      std::cout << "DMA TAG: " << res << std::endl;
 
       addr += 4;
       res = mmio_read(_krnl[0], addr);
-      std::cout << "ENQUEUED: " << static_cast<int32_t>(res) << std::endl;
+      std::cout << "ENQUEUED: " << res << std::endl;
 
       addr += 4;
       res = mmio_read(_krnl[0], addr);
-      std::cout << "RX_TAG: " << static_cast<int32_t>(res) << std::endl;
+      std::cout << "RX_TAG: " << res << std::endl;
 
       addr += 4;
       res = mmio_read(_krnl[0], addr);
-      std::cout << "RESERVED: " << static_cast<int32_t>(res) << std::endl;
+      std::cout << "RESERVED: " << res << std::endl;
 
       addr += 4;
       res = mmio_read(_krnl[0], addr);
-      std::cout << "RX_LEN: " << static_cast<int32_t>(res) << std::endl;
+      std::cout << "RX_LEN: " << res << std::endl;
 
       addr += 4;
       res = mmio_read(_krnl[0], addr);
-      std::cout << "RX_SRC: " << static_cast<int32_t>(res) << std::endl;
+      std::cout << "RX_SRC: " << res << std::endl;
     }
   }
 
@@ -210,16 +210,16 @@ void set_max_dma_transaction_param(const auto value=0) {
     execute_kernel(config, value, 0, 0, set_max_dma_transactions, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
 }
 
-  void prep_rx_buffers(int bank_id = 1) {
-    //const auto SIZE = _rx_buffer_size / sizeof(int8_t); // 1...
-    int32_t addr = 0; 
+  void prep_rx_buffers() {
+    const auto SIZE = _rx_buffer_size / sizeof(uint32_t);
+    uint32_t addr = 0; 
     mmio_write(_krnl[0], addr, _nbufs);
     for (int i = 0; i < _nbufs; i++) {
       // Alloc and fill buffer
       const auto bank_grp_idx = i; //_krnl->group_id(i);
       auto bo = xrt::bo(_device, _rx_buffer_size, bank_grp_idx);
-      auto hostmap = bo.map<int8_t *>();
-      std::fill(hostmap, hostmap + (_rx_buffer_size), static_cast<int8_t>(0));
+      auto hostmap = bo.map<int32_t *>();
+      std::fill(hostmap, hostmap + SIZE, 0);
       bo.sync(XCL_BO_SYNC_BO_TO_DEVICE);
       _rx_buffer_spares.insert(_rx_buffer_spares.cbegin() + i, bo);
 
@@ -246,6 +246,7 @@ void set_max_dma_transaction_param(const auto value=0) {
 	set_dma_transaction_size_param(_rx_buffer_size);
 	set_max_dma_transaction_param(10);
 
+	MPI_Barrier(MPI_COMM_WORLD);
   }
 
 
@@ -254,7 +255,6 @@ void set_max_dma_transaction_param(const auto value=0) {
 
   const int32_t get_hwid() { return mmio_read(_krnl[0], 0xFF8); }
 
-  // XXX Continue here
   void nop_op(bool run_async = false) { //, waitfor=[]) {
      execute_kernel(nop, 1, 0, 0, 0, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
   }

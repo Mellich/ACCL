@@ -76,12 +76,11 @@ public:
       string ip = base_ipaddr + to_string(i + start_ip);
       rank_to_ip.insert(pair<int, string>(_rank, ip));
       addr += 4;
-      mmio_write(_krnl[0], addr, ip_encode(ip_from_rank(i)));
+      mmio_write(_krnl[0], addr, ip_encode(ip));
       addr += 4;
       if (_vnx) {
         mmio_write(_krnl[0], addr, i);
       } else {
-		cout << "writing " << port_from_rank(i) << " to " << addr<< endl;
         mmio_write(_krnl[0], addr, port_from_rank(i));
       }
 		addr += 4;
@@ -94,7 +93,7 @@ public:
 		mmio_write(_krnl[0], addr, 0xFFFFFFFF);
   		cd.session_addr = addr;	
 	}
-	_cd.push_back(cd);	 
+	_cd.push_back(cd); 
 }
 
   int32_t port_from_rank(int rank) {
@@ -115,10 +114,10 @@ public:
 
 	void dump_communicator() {
 		uint32_t _addr;
-		if(_comm_count==0) {
+		if(_cd.size()==0) {
 			_addr = _comm_addr;
 		} else {
-			_addr = _cd.back().addr - EXCHANGE_MEM_OFFSET_ADDRESS;
+			_addr = _comm_addr; //_cd.back().addr - EXCHANGE_MEM_OFFSET_ADDRESS;
 		}
 		int nr_ranks =  mmio_read(_krnl[0], _addr);
 		_addr +=4;

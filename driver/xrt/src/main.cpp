@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
 
   std::cerr << "Prep RX buffers" << std::endl;
   t_preprxbuffers.start();
-  f.prep_rx_buffers(nbufs);
+  f.prep_rx_buffers();
   t_preprxbuffers.end();
   
   std::cerr << "Dump RX buffers" << std::endl;
