@@ -73,7 +73,7 @@ public:
     addr += 4;
     mmio_write(_krnl[0], addr, _local_rank);
     for (int i = 0; i < _world_size; i++) {
-      string ip = base_ipaddr + to_string(i + start_ip);
+      const string ip = base_ipaddr + to_string(i + start_ip);
       rank_to_ip.insert(pair<int, string>(_rank, ip));
       addr += 4;
       mmio_write(_krnl[0], addr, ip_encode(ip));
@@ -106,8 +106,7 @@ public:
   }
   
   string ip_decode(auto ip) { 
-	inet_ntop(AF_INET, &(sa.sin_addr), str, INET_ADDRSTRLEN);	
-	return string(str);
+	return string(inet_ntop(AF_INET, &ip, str, INET_ADDRSTRLEN));
   }
 
   string ip_from_rank(int rank) { return rank_to_ip[rank]; }
@@ -117,23 +116,23 @@ public:
 		if(_cd.size()==0) {
 			_addr = _comm_addr;
 		} else {
-			_addr = _comm_addr; //_cd.back().addr - EXCHANGE_MEM_OFFSET_ADDRESS;
+			_addr = _comm_addr; //_cd.back().addr - (EXCHANGE_MEM_OFFSET_ADDRESS);
 		}
-		int nr_ranks =  mmio_read(_krnl[0], _addr);
+		const auto  nr_ranks =  mmio_read(_krnl[0], _addr);
 		_addr +=4;
-		int local_ranks = mmio_read(_krnl[0], _addr);
-		cout << "Communicator: local_rank: " << _local_rank << " number of ranks: " << _world_size << endl;
+		const auto local_ranks = mmio_read(_krnl[0], _addr);
+		cout << "Communicator: local_rank: " << local_ranks << " number of ranks: " << nr_ranks << endl;
 		for(int i =0; i<nr_ranks; i++) {
 			_addr+=4;
-			int32_t ip_addr_rank = mmio_read(_krnl[0], _addr);
+			const auto ip_addr_rank = mmio_read(_krnl[0], _addr);
 			_addr+=4;
-			auto port  = mmio_read(_krnl[0], _addr);
+			const auto port  = mmio_read(_krnl[0], _addr);
 			_addr+=4;
-			auto inbound_seq_number  = mmio_read(_krnl[0], _addr);
+			const auto inbound_seq_number  = mmio_read(_krnl[0], _addr);
 			_addr+=4;
-			auto outbound_seq_number  = mmio_read(_krnl[0], _addr);
+			const auto outbound_seq_number  = mmio_read(_krnl[0], _addr);
 			_addr+=4;
-			auto session  = mmio_read(_krnl[0], _addr);	
+			const auto session  = mmio_read(_krnl[0], _addr);	
 			cout << i << " " << ip_decode(ip_addr_rank) << " " << port << " " << inbound_seq_number << " " << outbound_seq_number << endl;
 		}
 	}

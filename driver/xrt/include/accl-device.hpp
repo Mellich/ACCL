@@ -147,7 +147,7 @@ public:
       const auto addrh = mmio_read(_krnl[0], addr);
 
       addr += 4;
-      auto maxsize = mmio_read(_krnl[0], addr);
+      const auto maxsize = mmio_read(_krnl[0], addr);
 
       addr += 4;
       const auto dmatag = mmio_read(_krnl[0], addr);
@@ -179,8 +179,7 @@ public:
                 status = "UNKNOWN";
 			}
     string content = "content";
-	if(maxsize==0) { maxsize = 1;} // XXX DEBUG
-	std::cout << "SPARE RX BUFFER " << i <<":\t ADDR: "<< hex << addrh << " " << addrl <<" \t STATUS: "<< dec << status << " \t OCCUPACY: "<< rxlen/maxsize << " \t DMA TAG: " << hex << dmatag << " \t  MPI TAG:"<< rxtag <<" \t SEQ: "<< seq <<" \t SRC: "<< rxsrc<<" \t content "<<content << endl;
+	std::cout << "SPARE RX BUFFER " << i <<":\t ADDR: "<< hex << addrh << " " << addrl <<" \t STATUS: "<< dec << status << " \t OCCUPACY: "<< rxlen/maxsize << " \t DMA TAG: " << hex << dmatag << dec<< " \t  MPI TAG:"<< rxtag <<" \t SEQ: "<< seq <<" \t SRC: "<< rxsrc<<" \t content "<<content << endl;
 	}
   }
 

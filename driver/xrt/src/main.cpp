@@ -92,7 +92,8 @@ int main(int argc, char *argv[]) {
   f.nop_op();
   std::cout << "Return code: " << f.get_retcode() << std::endl;
   t_execute_kernel.end();
-  
+ 
+  if(rank ==0) { 
   std::cout << "t_construct: " << t_construct.elapsed() << " usecs"
             << std::endl;
   std::cout << "t_bitstream: " << t_bitstream.elapsed() << " usecs"
@@ -106,6 +107,7 @@ int main(int argc, char *argv[]) {
   std::cout << "t_execute_kernel: " << t_execute_kernel.elapsed() << " usecs"
             << std::endl;
   std::cout << "HWID: " << hex << f.get_hwid() << std::dec << std::endl;
+  }
   MPI_Finalize();
   return 0;
 }
