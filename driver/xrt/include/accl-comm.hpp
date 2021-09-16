@@ -96,16 +96,16 @@ public:
 	_cd.push_back(cd); 
 }
 
-  int32_t port_from_rank(int rank) {
-    return 16; // XXX What is port?
+  const int32_t port_from_rank(int rank) {
+    return 0; // XXX What is port?
   }
 
-  unsigned long ip_encode(string ip) { 
+  const unsigned long ip_encode(string ip) { 
 	inet_pton(AF_INET, ip.c_str(), &(sa.sin_addr));
 	return sa.sin_addr.s_addr; 
   }
   
-  string ip_decode(auto ip) { 
+  const string ip_decode(auto ip) { 
 	return string(inet_ntop(AF_INET, &ip, str, INET_ADDRSTRLEN));
   }
 
@@ -133,10 +133,13 @@ public:
 			const auto outbound_seq_number  = mmio_read(_krnl[0], _addr);
 			_addr+=4;
 			const auto session  = mmio_read(_krnl[0], _addr);	
-			cout << i << " " << ip_decode(ip_addr_rank) << " " << port << " " << inbound_seq_number << " " << outbound_seq_number << endl;
+			cout << i << " " << ip_decode(ip_addr_rank) << " " << port << " " << session << " "  << inbound_seq_number << " " << outbound_seq_number << endl;
 		}
 	}
 
+	const uint32_t get_addr() {
+		return _cd.back().addr;
+	}
 
 /*
     def dump_communicator(self):

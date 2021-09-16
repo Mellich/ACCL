@@ -118,9 +118,25 @@ public:
 				
   }
 
+  template <typename T>
+  void copy_to_buffer(vector<T> input, int j) {
+      auto hostmap = _rx_buffer_spares[j].map<int32_t *>();
+	  for(int i=0; i< input.size(); i++) {
+		hostmap[i] = input.data()[i];
+	  }
+	 _rx_buffer_spares[j].sync(XCL_BO_SYNC_BO_TO_DEVICE);
+  }
+
   communicator get_comm() {
 		return _comm;
 	}
+
+  xrt::bo buffer_at(const int idx) {
+		if(idx>_nbufs) {
+			return NULL;
+		}
+		return _rx_buffer_spares[idx];
+  }
 
 	void dump_exchange_memory() {
         std::cout << "exchange mem: "<< std::endl;
@@ -280,7 +296,6 @@ void set_max_dma_transaction_param(const auto value=0) {
 	auto send(auto comm_id, auto srcbuf, auto dst, auto tag=TAG_ANY, bool from_fpga=false) {
 		if(srcbuf.size()==0) {
 			cerr << "Attempt to send 0 size buffer"<<endl;
-			return;
 		}
 		if(from_fpga==false) {
 			srcbuf.sync(XCL_BO_SYNC_BO_TO_DEVICE);
@@ -295,7 +310,6 @@ void set_max_dma_transaction_param(const auto value=0) {
 		}
 		if(dstbuf.size()==0) {
 			cerr << "Attempt to recv to 0 size buffer"<<endl;
-			return;
 		}
 		auto handle = execute_kernel(recvop, _rx_buffer_size/sizeof(int32_t), comm_id, src, 0, tag, 0,0,0, dstbuf.address(), DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
 		return handle;

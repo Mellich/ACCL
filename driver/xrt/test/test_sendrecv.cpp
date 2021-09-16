@@ -49,14 +49,70 @@ def test_self_sendrecv():
             import pdb; pdb.set_trace()
 */
 
-int main() {
-	cout << "========================================" << endl;
-	cout << "Self Send/Recv" << endl;
-	cout << "========================================" << endl;
+#include <vector>
+#include <iostream>
+#include <algorithm>
+#include "accl-device.hpp"
+#include "timing.hpp"
+using namespace std;
+
+
+void check_usage(int argc, char *argv[]) {
+  if (argc < 4) {
+    std::cerr << "Usage: " << argv[0]
+              << " <bitstream> <device_idx> <bank_id>" << std::endl;
+    exit(-1);
+  }
+}
+
+int main(int argc, char *argv[]) {
+
+  MPI_Init(&argc, &argv);
+
+  check_usage(argc, argv);
+	int errors =0;
+  const std::string bitstream_f = argv[1];
+  const auto device_idx = atoi(argv[2]);
+  const auto nbufs = atoi(argv[3]);
+  const auto mode = atoi(argv[4]);
+
+  int rank, size;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+  std::cout << "Rank " << rank << std::endl;
+  std::cout << "Bitstream " << bitstream_f << std::endl;
+  std::cout << "Buffer count " << nbufs << std::endl;
+//  std::cout << "Mode " << mode << std::endl;
+
+
+  const int buffer_size = nbufs * 1024;
+  const auto SIZE = buffer_size/sizeof(float);
+  ACCL f(nbufs, buffer_size, device_idx, rank, size, DUAL);
+  f.load_bitstream(bitstream_f);
+  f.prep_rx_buffers();
+  
+  f.config_comm();
+	const auto naccel =  3;
 	for(int j=0; j<naccel; j++) {
 		auto src_rank = j;
 		auto dst_rank = j;
 		auto tag = 5+10*j;
+
+		// Allocate sendddata
+		vector<float> senddata(SIZE);
+		vector<float> recvdata(SIZE);	
+		fill(senddata.begin(), senddata.end(), 0x5ca1ab1e);
+		f.copy_to_buffer(senddata, j);
+		f.send(0, f.buffer_at(j), j, tag);
+		f.recv(0, f.buffer_at(j), j, tag);
+
+
+
+		if(senddata!=recvdata) {
+			errors++;
+		}
 	}
-	return 0;
+	MPI_Finalize();
+	return errors;
 }
