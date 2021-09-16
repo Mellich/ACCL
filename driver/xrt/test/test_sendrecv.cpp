@@ -87,32 +87,36 @@ int main(int argc, char *argv[]) {
 
 
   const int buffer_size = nbufs * 1024;
-  const auto SIZE = buffer_size/sizeof(float);
+  const auto SIZE = buffer_size/sizeof(int);
   ACCL f(nbufs, buffer_size, device_idx, rank, size, DUAL);
   f.load_bitstream(bitstream_f);
   f.prep_rx_buffers();
   
   f.config_comm();
-	const auto naccel =  3;
+	const auto naccel =  size;
 	for(int j=0; j<naccel; j++) {
 		auto src_rank = j;
 		auto dst_rank = j;
 		auto tag = 5+10*j;
 
 		// Allocate sendddata
-		vector<float> senddata(SIZE);
-		vector<float> recvdata(SIZE);	
+		vector<int> senddata(SIZE);
+		vector<int> recvdata(SIZE);	
 		fill(senddata.begin(), senddata.end(), 0x5ca1ab1e);
 		f.copy_to_buffer(senddata, j);
 		f.send(0, f.buffer_at(j), j, tag);
 		f.recv(0, f.buffer_at(j), j, tag);
 
-
-
 		if(senddata!=recvdata) {
 			errors++;
 		}
+		for(int i=0; i< 10; i++) {
+			cout << hex << senddata.data()[i] << " " << recvdata.data()[i] << endl;
+		}
 	}
+	cout << "Errors: " << errors << endl;
+	f.dump_rx_buffers();
+	f.get_comm().dump_communicator();
 	MPI_Finalize();
 	return errors;
 }
