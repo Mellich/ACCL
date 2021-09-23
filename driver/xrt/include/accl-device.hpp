@@ -35,7 +35,7 @@
 #include <sstream>      // std::stringstream
 
 
-bool compatible_size(size_t nbytes, accl_reduce_func type) {
+const bool compatible_size(size_t nbytes, accl_reduce_func type) {
   if (type == fp || type == i32) {
     return (nbytes % 4) == 0 ? true : false;
   } else if (type == dp || type == i64) {
@@ -80,7 +80,7 @@ public:
     	_local_rank = stoi(_local_rank_string);
   }
 
-  template <typename... Args> auto execute_kernel(Args... args) {
+  template <typename... Args> inline auto execute_kernel(Args... args) {
     auto run = _krnl[0](args...);
 	run.wait();
 	return run;
@@ -214,7 +214,7 @@ void set_dma_transaction_size_param(const auto value=0) {
         cout << "time taken to start and stop timer " <<  mmio_read(_krnl[0], 0x0FF4) << endl;
 }
 
-int32_t get_mmio_addr() {
+const int32_t get_mmio_addr() {
     return mmio_read(_krnl[0], _base_addr);
 }
 
@@ -272,7 +272,7 @@ void set_max_dma_transaction_param(const auto value=0) {
 
   const int32_t get_hwid() { return mmio_read(_krnl[0], 0xFF8); }
 
-  void nop_op(bool run_async = false) { //, waitfor=[]) {
+  void nop_op(const bool run_async = false) { //, waitfor=[]) {
      execute_kernel(nop, 1, 0, 0, 0, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
   }
 

@@ -24,8 +24,8 @@ using namespace std::chrono;
 
 class Timer {
 	private:
-		steady_clock::time_point _start;
-		steady_clock::time_point _end;	
+		high_resolution_clock::time_point _start;
+		high_resolution_clock::time_point _end;	
 		bool _started = false;
 		bool _ended = false;
 	public:
@@ -34,16 +34,16 @@ class Timer {
 		}
 	
 		void start() {
-			_start = steady_clock::now();
+			_start = high_resolution_clock::now();
 			_started = true;
 		}
 
 		void end() {
-			_end   = steady_clock::now();
+			_end   = high_resolution_clock::now();
 			_ended = true;
 		}
 
-		unsigned long elapsed() {
+		const long long elapsed() {
 			if(!_started || !_ended) {
 				std::cerr << "Timer error. You forgot to call start or end or both" << std::endl;
 				return 0;

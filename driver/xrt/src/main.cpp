@@ -90,8 +90,8 @@ int main(int argc, char *argv[]) {
   std::cerr << "NOP" << std::endl;
   t_execute_kernel.start();
   f.nop_op();
-  std::cout << "Return code: " << f.get_retcode() << std::endl;
   t_execute_kernel.end();
+  std::cout << "Return code: " << f.get_retcode() << std::endl;
  
   if(rank ==0) { 
   std::cout << "t_construct: " << t_construct.elapsed() << " usecs"
