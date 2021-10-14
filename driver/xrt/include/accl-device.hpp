@@ -83,7 +83,7 @@ public:
   template <typename... Args> inline auto execute_kernel(Args... args) {
     auto run = _krnl[0](args...);
 	run.wait();
-	return run;
+	return 0;
   }
  
  ~ACCL() {
@@ -184,18 +184,24 @@ public:
       const auto seq = mmio_read(_krnl[0], addr);
     
 		string status;
-		if(rstatus == 0) {
-                status =  "NOT USED";
-		}
-            else if (rstatus == 1) {
-                status = "ENQUEUED";
-			} else if (rstatus == 2) {
-                status = "RESERVED";
-			} else {
-                status = "UNKNOWN";
-			}
+    switch (rstatus)
+    {
+    case 0:
+      status =  "NOT USED";
+      break;
+    case 1:
+      status = "ENQUEUED";
+      break;
+    case 2:
+      status = "RESERVED";
+      break;
+    default:
+      status = "UNKNOWN" +  std::to_string(rstatus);
+      break;
+    }
+
     string content = "content";
-	std::cout << "SPARE RX BUFFER " << i <<":\t ADDR: "<< hex << addrh << " " << addrl <<" \t STATUS: "<< dec << status << " \t OCCUPACY: "<< rxlen/maxsize << " \t DMA TAG: " << hex << dmatag << dec<< " \t  MPI TAG:"<< rxtag <<" \t SEQ: "<< seq <<" \t SRC: "<< rxsrc<<" \t content "<<content << endl;
+	std::cout << "SPARE RX BUFFER " << i <<":\t ADDR: "<< hex << addrh << " " << addrl <<" \t STATUS: "<< dec << status << " \t OCCUPACY: "<< rxlen << "/" << maxsize << " \t DMA TAG: " << hex << dmatag << dec<< " \t  MPI TAG:"<< rxtag <<" \t SEQ: "<< seq <<" \t SRC: "<< rxsrc<<" \t content "<<content << endl;
 	}
   }
 
@@ -233,7 +239,7 @@ void set_max_dma_transaction_param(const auto value=0) {
     mmio_write(_krnl[0], addr, _nbufs);
     for (int i = 0; i < _nbufs; i++) {
       // Alloc and fill buffer
-      const auto bank_grp_idx = i; //_krnl->group_id(i);
+      const auto bank_grp_idx = i % 6; //_krnl->group_id(i);
       auto bo = xrt::bo(_device, _rx_buffer_size, bank_grp_idx);
       auto hostmap = bo.map<int32_t *>();
       std::fill(hostmap, hostmap + SIZE, 0);
@@ -253,13 +259,14 @@ void set_max_dma_transaction_param(const auto value=0) {
         addr += 4;
         mmio_write(_krnl[0], addr, 0);
       }
+      cout << "buffer "<< i << " each "<< _rx_buffer_size << endl; 
     }
-      _comm_addr = addr + 4;
-      // Start irq-driven RX buffer scheduler and (de)packetizer
-      execute_kernel(config, 1, 0, 0, enable_irq, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
-	  execute_kernel(config, 1, 0, 0, enable_pkt, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
-      cout << "time taken to enqueue buffers "<< mmio_read(_krnl[0], 0x0FF4) << endl;
- 
+    _comm_addr = addr + 4;
+    // Start irq-driven RX buffer scheduler and (de)packetizer
+    execute_kernel(config, 1, 0, 0, enable_irq, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
+    execute_kernel(config, 1, 0, 0, enable_pkt, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
+    cout << "time taken to enqueue buffers "<< mmio_read(_krnl[0], 0x0FF4) << endl;
+
 	set_dma_transaction_size_param(_rx_buffer_size);
 	set_max_dma_transaction_param(10);
 
@@ -300,7 +307,7 @@ void set_max_dma_transaction_param(const auto value=0) {
 		if(from_fpga==false) {
 			srcbuf.sync(XCL_BO_SYNC_BO_TO_DEVICE);
 		}
-		auto handle = execute_kernel(sendop, _rx_buffer_size/sizeof(int32_t), comm_id, dst, 0, tag, 0, 0, 0, srcbuf.address(), DUMMY_ADDR, DUMMY_ADDR);
+		auto handle = execute_kernel(sendop, srcbuf.size(), comm_id, dst, 0, tag, 0, 0, 0, srcbuf.address(), DUMMY_ADDR, DUMMY_ADDR);
 		return handle;
 	}
 
@@ -311,7 +318,7 @@ void set_max_dma_transaction_param(const auto value=0) {
 		if(dstbuf.size()==0) {
 			cerr << "Attempt to recv to 0 size buffer"<<endl;
 		}
-		auto handle = execute_kernel(recvop, _rx_buffer_size/sizeof(int32_t), comm_id, src, 0, tag, 0,0,0, dstbuf.address(), DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
+		auto handle = execute_kernel(recvop, dstbuf.size(), comm_id, src, 0, tag, 0,0,0, dstbuf.address(), DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
 		return handle;
 	}
 	/*
