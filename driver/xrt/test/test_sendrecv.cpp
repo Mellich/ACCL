@@ -93,6 +93,7 @@ int main(int argc, char *argv[]) {
   f.prep_rx_buffers();
   
   f.config_comm();
+	f.dump_rx_buffers();
 	const auto naccel =  size;
 	for(int j=0; j<naccel; j++) {
 		auto src_rank = j;

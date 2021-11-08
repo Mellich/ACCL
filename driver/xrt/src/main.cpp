@@ -65,12 +65,15 @@ int main(int argc, char *argv[]) {
   t_bitstream.start();
   f.load_bitstream(bitstream_f);
   t_bitstream.end();
+  
 
   std::cerr << "Prep RX buffers" << std::endl;
   t_preprxbuffers.start();
   f.prep_rx_buffers();
   t_preprxbuffers.end();
+
   
+/*  
   std::cerr << "Dump RX buffers" << std::endl;
   t_dump_rx_buffers.start();
   f.dump_rx_buffers();
@@ -87,9 +90,11 @@ int main(int argc, char *argv[]) {
   t_dump_comm.end();
 
 
+  auto run = f.nop_op();
   std::cerr << "NOP" << std::endl;
   t_execute_kernel.start();
-  f.nop_op();
+  run.start();
+  std::cout<<  "State: " << run.wait() << std::endl;
   t_execute_kernel.end();
   std::cout << "Return code: " << f.get_retcode() << std::endl;
  
@@ -108,6 +113,7 @@ int main(int argc, char *argv[]) {
             << std::endl;
   std::cout << "HWID: " << hex << f.get_hwid() << std::dec << std::endl;
   }
+  */
   MPI_Finalize();
   return 0;
 }

@@ -78,9 +78,9 @@ public:
     	get_xilinx_device(idx);
     	_local_rank_string = string(getenv("OMPI_COMM_WORLD_LOCAL_RANK"));
     	_local_rank = stoi(_local_rank_string);
-  }
+ }
 
-  template <typename... Args> inline auto execute_kernel(Args... args) {
+  template <typename... Args> auto execute_kernel(Args... args) {
     auto run = _krnl[0](args...);
 	run.wait();
 	return run;
@@ -115,7 +115,11 @@ public:
         "ccl_offload:ccl_offload_"+string{_local_rank_string},
         xrt::kernel::cu_access_mode::exclusive);
 	MPI_Barrier(MPI_COMM_WORLD);
-				
+	write_reg(_krnl[0], 0x18, 0xdeadbeef);
+	auto run  = _krnl[0](0xdeadbeef,0xdeadbeef,0xdeadbeef,0xdeadbeef,0xdeadbeef,0xdeadbeef,0xdeadbeef,0xdeadbeef,0xdeadbeef,0xdeadbeef,0xdeadbeef,0xdeadbeef);
+    run.wait();
+	cout << "RAN KERNEL" << endl;			
+    
   }
 
   template <typename T>
@@ -139,14 +143,10 @@ public:
   }
 
 	void dump_exchange_memory() {
-        std::cout << "exchange mem: "<< std::endl;
+        std::cout << "Exchange mem: "<< std::endl;
         const int num_word_per_line=4;
-        for(int i =0; i< EXCHANGE_MEM_ADDRESS_RANGE; i+=4*num_word_per_line){
-            std::stringstream ss;
-			for(int j=0; j<num_word_per_line; j++) {
-       //         ss << read_reg(_base_addr(i+(j*4)));
-			}
-  //          std::cout << std::hex << _base_addr + i <<  ss << endl;
+        for(int i =0; i< 116; i+=4){
+			cout << read_reg(_krnl[0], i)  <<endl;
 		}
 	}
 
@@ -256,8 +256,11 @@ void set_max_dma_transaction_param(const auto value=0) {
     }
       _comm_addr = addr + 4;
       // Start irq-driven RX buffer scheduler and (de)packetizer
-      execute_kernel(config, 1, 0, 0, enable_irq, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
-	  execute_kernel(config, 1, 0, 0, enable_pkt, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
+      //execute_kernel(config, 0xdeadbeef); //, 0, 0, enable_irq, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
+	  dump_exchange_memory();
+	  cout << "Enable IRQ: " << get_retcode() << endl;
+      execute_kernel(config, 1, 0, 0, enable_pkt, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
+	  cout << "Enable PKT: " << get_retcode() << endl;
       cout << "time taken to enqueue buffers "<< mmio_read(_krnl[0], 0x0FF4) << endl;
  
 	set_dma_transaction_size_param(_rx_buffer_size);
@@ -272,8 +275,8 @@ void set_max_dma_transaction_param(const auto value=0) {
 
   const int32_t get_hwid() { return mmio_read(_krnl[0], 0xFF8); }
 
-  void nop_op(const bool run_async = false) { //, waitfor=[]) {
-     execute_kernel(nop, 1, 0, 0, 0, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
+  xrt::run nop_op(const bool run_async = false) { //, waitfor=[]) {
+     return execute_kernel(nop, 1, 0, 0, 0, TAG_ANY, 0, 0, 0, DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
   }
 
   auto enable_profiling(bool run_async=false) {//, waitfor=[]) {
@@ -312,6 +315,14 @@ void set_max_dma_transaction_param(const auto value=0) {
 			cerr << "Attempt to recv to 0 size buffer"<<endl;
 		}
 		auto handle = execute_kernel(recvop, _rx_buffer_size/sizeof(int32_t), comm_id, src, 0, tag, 0,0,0, dstbuf.address(), DUMMY_ADDR, DUMMY_ADDR, DUMMY_ADDR);
+		if(run_async==false) {
+			return handle;
+		} else {
+			handle.wait();
+		}
+		if(to_fpga==false) {
+			dstbuf.sync(XCL_BO_SYNC_BO_FROM_DEVICE);
+		}
 		return handle;
 	}
 	/*
