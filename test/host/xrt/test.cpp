@@ -595,6 +595,17 @@ void start_test(options_t options) {
     MPI_Barrier(MPI_COMM_WORLD);
   }
 
+  for (int root = 0; root < size; ++root) {
+    test_bcast(*accl, options, root);
+    MPI_Barrier(MPI_COMM_WORLD);
+    test_scatter(*accl, options, root);
+    MPI_Barrier(MPI_COMM_WORLD);
+    test_gather(*accl, options, root);
+    MPI_Barrier(MPI_COMM_WORLD);
+    test_reduce(*accl, options, root, reduceFunction::SUM);
+    MPI_Barrier(MPI_COMM_WORLD);
+  }
+
   std::cout << failed_tests << " tests failed on rank " << rank << "."
             << std::endl;
   MPI_Barrier(MPI_COMM_WORLD);
