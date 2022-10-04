@@ -354,7 +354,7 @@ int send(
         (stream & OP0_STREAM) ? MOVE_STREAM : MOVE_IMMEDIATE, 
         MOVE_NONE,
         (stream & RES_STREAM) ? MOVE_STREAM : MOVE_IMMEDIATE, 
-        compression, RES_REMOTE, 0,
+        compression, (dst_rank == world.local_rank) ? RES_LOCAL : RES_REMOTE, 0,
         count, comm_offset, arcfg_offset, src_addr, 0, 0, 0, 0, 0,
         0, 0, dst_rank, dst_tag
     );
