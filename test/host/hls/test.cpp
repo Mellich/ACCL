@@ -185,6 +185,48 @@ void test_loopback_local_res(ACCL::ACCL& accl, options_t options) {
     cclo.stop();
 }
 
+void test_loopback_sendrecv(ACCL::ACCL& accl, options_t options) {
+
+    //run test here:
+    //initialize a CCLO BFM and streams as needed
+    hlslib::Stream<command_word> callreq, callack;
+    hlslib::Stream<stream_word, 512> data_cclo2krnl("cclo2krnl"), data_krnl2cclo("krnl2cclo");
+    int stream_id = 9;
+    std::vector<unsigned int> dest = {0, stream_id};
+    CCLO_BFM cclo(options.start_port, rank, size, dest, callreq, callack, data_cclo2krnl, data_krnl2cclo);
+    cclo.run();
+    std::cout << "CCLO BFM started" << std::endl;
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    stream_word in;
+    in.dest = stream_id;
+    in.last = 1;
+    in.keep = -1;
+    in.data = rank;
+    for (int i=0; i < (options.count+15)/16; i++) {
+        data_krnl2cclo.write(in);
+    }
+    auto d_buffer = accl.create_buffer<int>(options.count, ACCL::dataType::int32, 0);
+    accl.send(*d_buffer, options.count, rank, stream_id, ACCL::GLOBAL_COMM, false, ACCL::streamFlags::OP0_STREAM);
+    accl.recv(*d_buffer, options.count, rank, stream_id, ACCL::GLOBAL_COMM, false, ACCL::streamFlags::RES_STREAM);
+
+    //loop back data (divide count by 16 and round up to get number of stream words)
+    std::vector<stream_word> recv_words;
+    for (int i=0; i < (options.count+15)/16; i++) {
+        recv_words.push_back(data_cclo2krnl.read());
+    }
+
+    //check HLS function outputs
+    unsigned int err_count = 0;
+    for(int i=0; i<(options.count+15)/16; i++){
+        err_count += (recv_words[i].data != rank);
+    }
+
+    std::cout << "Test finished with " << err_count << " errors" << std::endl;
+    //clean up
+    cclo.stop();
+}
+
 void test_loopback(ACCL::ACCL& accl, options_t options, unsigned char stream_id) {
 
     //run test here:
@@ -309,6 +351,8 @@ int main(int argc, char *argv[]) {
             MPI_Barrier(MPI_COMM_WORLD);
         }
         test_loopback_local_res(*accl, options);
+        MPI_Barrier(MPI_COMM_WORLD);
+        test_loopback_sendrecv(*accl, options);
         MPI_Barrier(MPI_COMM_WORLD);
     }
 
