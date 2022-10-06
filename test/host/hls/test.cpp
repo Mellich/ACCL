@@ -151,7 +151,7 @@ void test_loopback_local_res(ACCL::ACCL& accl, options_t options) {
     hlslib::Stream<command_word> callreq, callack;
     hlslib::Stream<stream_word, 512> data_cclo2krnl("cclo2krnl"), data_krnl2cclo("krnl2cclo");
     int stream_id = 9;
-    std::vector<unsigned int> dest = {0, stream_id};
+    std::vector<unsigned int> dest = {stream_id};
     CCLO_BFM cclo(options.start_port, rank, size, dest, callreq, callack, data_cclo2krnl, data_krnl2cclo);
     cclo.run();
     std::cout << "CCLO BFM started" << std::endl;
