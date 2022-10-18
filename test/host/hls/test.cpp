@@ -28,7 +28,6 @@
 #include "cclo_bfm.h"
 #include <xrt/xrt_device.h>
 #include <iostream>
-#include "dummybuffer.hpp"
 
 using namespace ACCL;
 
@@ -165,8 +164,7 @@ void test_loopback_local_res(ACCL::ACCL& accl, options_t options) {
     for (int i=0; i < (options.count+15)/16; i++) {
         data_krnl2cclo.write(in);
     }
-    auto d_buffer = accl.create_buffer<int>(options.count, ACCL::dataType::int32, 0);
-    accl.stream_put(*d_buffer, options.count, rank, stream_id, ACCL::GLOBAL_COMM, false, ACCL::streamFlags::OP0_STREAM);
+    accl.stream_put(dataType::int32, options.count, rank, stream_id);
 
     //loop back data (divide count by 16 and round up to get number of stream words)
     std::vector<stream_word> recv_words;
