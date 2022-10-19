@@ -166,8 +166,7 @@ void test_loopback(ACCL::ACCL& accl, options_t options, unsigned char stream_id)
     int init_rank = ((rank - 1 + size) % size);
     int loopback_rank = ((rank + 1 ) % size);
 
-    accl.send(*src_buffer, options.count, loopback_rank, stream_id);
-    accl.recv(dataType::int32, options.count, init_rank, stream_id, ACCL::GLOBAL_COMM);
+    accl.stream_put(*src_buffer, options.count, loopback_rank, stream_id);
 
     //loop back data (divide count by 16 and round up to get number of stream words)
     for (int i=0; i < (options.count+15)/16; i++) {
