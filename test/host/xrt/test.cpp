@@ -600,6 +600,67 @@ void test_bcast_compressed(ACCL::ACCL &accl, options_t &options, int root) {
   }
 }
 
+void test_bcast_comms(ACCL::ACCL &accl, options_t &options) {
+  std::cout << "Start bcast test with communicators..." << std::endl;
+  unsigned int count = options.count;
+  auto op_buf = accl.create_buffer<float>(count, dataType::float32);
+  auto res_buf = accl.create_buffer<float>(count, dataType::float32);
+  random_array(op_buf->buffer(), count);  
+  std::fill(res_buf->buffer(), res_buf->buffer() + count, 0);
+
+  test_debug("Setting up communicators...", options);
+  auto group = accl.get_comm_group(GLOBAL_COMM);
+  unsigned int own_rank = accl.get_comm_rank(GLOBAL_COMM);
+  unsigned int split = group.size() / 2;
+  test_debug("Split is " + std::to_string(split), options);
+  std::vector<rank_t>::iterator new_group_start;
+  std::vector<rank_t>::iterator new_group_end;
+  unsigned int new_rank = own_rank;
+  bool is_in_lower_part = own_rank < split;
+  if (is_in_lower_part) {
+    new_group_start = group.begin();
+    new_group_end = group.begin() + split;
+  } else {
+    new_group_start = group.begin() + split;
+    new_group_end = group.end();
+    new_rank = own_rank - split;
+  }
+  std::vector<rank_t> new_group(new_group_start, new_group_end);
+  communicatorId new_comm = accl.create_communicator(new_group, new_rank);
+  test_debug(accl.dump_communicator(), options);
+  if (new_rank == 0) {
+    test_debug("Broadcasting data from " + std::to_string(new_rank) + "...",
+               options);
+    accl.bcast(*op_buf, count, 0, new_comm, false, false,
+               dataType::float16);
+  } else {
+    test_debug("Getting broadcast data from " + std::to_string(0) + "...",
+               options);
+    accl.bcast(*res_buf, count, 0, new_comm, false, false,
+               dataType::float16);
+  }
+
+  int errors = 0;
+  for (unsigned int i = 0; i < count; ++i) {
+    float res = (*res_buf)[i];
+    float ref = (new_rank != 0) ? (*op_buf)[i] : 0;
+    if (!is_close(res, ref, FLOAT16RTOL, FLOAT16ATOL)) {
+      std::cout << std::to_string(i + 1) + "th item is incorrect! (" +
+                        std::to_string(res) + " != " + std::to_string(ref) +
+                        ")"
+                << std::endl;
+      errors += 1;
+    }
+  }
+
+  if (errors > 0) {
+    std::cout << std::to_string(errors) + " errors!" << std::endl;
+    failed_tests++;
+  } else {
+    std::cout << "Test is successful!" << std::endl;
+  }
+}
+
 void test_scatter(ACCL::ACCL &accl, options_t &options, int root) {
   std::cout << "Start scatter test with root " + std::to_string(root) + " ..."
             << std::endl;
@@ -1423,6 +1484,8 @@ int start_test(options_t options) {
   MPI_Barrier(MPI_COMM_WORLD);
   test_allgather_comms(*accl, options);
   MPI_Barrier(MPI_COMM_WORLD);
+  test_bcast_comms(*accl, options);
+  MPI_Barrier(MPI_COMM_WORLD);
 
   for (int root = 0; root < size; ++root) {
     test_bcast(*accl, options, root);
@@ -1553,3 +1616,4 @@ int main(int argc, char *argv[]) {
   MPI_Finalize();
   return errors;
 }
+                                                                                                                                                                                                      
