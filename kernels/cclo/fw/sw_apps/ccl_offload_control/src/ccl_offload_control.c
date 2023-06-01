@@ -350,14 +350,45 @@ int send(
     //dst_tag is < 247 (for correct routing on remote side)
     //destination compression == Ethernet compression
     //(since data can't be decompressed on remote side)
-    return move(
-        (stream & OP0_STREAM) ? MOVE_STREAM : MOVE_IMMEDIATE,
-        MOVE_NONE,
-        (stream & RES_STREAM) ? MOVE_STREAM : MOVE_IMMEDIATE,
-        compression, (dst_rank == world.local_rank) ? RES_LOCAL : RES_REMOTE, 0,
-        count, comm_offset, arcfg_offset, src_addr, 0, 0, 0, 0, 0,
-        0, 0, dst_rank, dst_tag
-    );
+
+    int err = NO_ERROR;
+    unsigned int max_seg_count;
+    int elems_remaining = count;
+    //convert max segment size to max segment count
+    //if pulling from a stream, segment size is irrelevant and we use the
+    //count directly because streams can't be read losslessly
+    //TODO: somehow this hangs in emulation for large messages, so commeted out for now
+    // if(stream & OP0_STREAM){
+    //     max_seg_count = count;
+    // } else{
+        //compute count from uncompressed elem bytes in aright config
+        //instead of Xil_In32 we could use:
+        //(datapath_arith_config*)(arcfg_offset)->uncompressed_elem_bytes;
+        max_seg_count = max_segment_size / Xil_In32(arcfg_offset);
+    // }
+    int expected_ack_count = 0;
+    while (elems_remaining > 0) { 
+        start_move(
+            (stream & OP0_STREAM) ? MOVE_STREAM : MOVE_IMMEDIATE,
+            MOVE_NONE,
+            (stream & RES_STREAM) ? MOVE_STREAM : MOVE_IMMEDIATE,
+            compression, (dst_rank == world.local_rank) ? RES_LOCAL : RES_REMOTE, 0,
+            min(max_seg_count, elems_remaining), comm_offset, arcfg_offset, src_addr, 0, 0, 0, 0, 0,
+            0, 0, dst_rank, dst_tag
+        );
+        expected_ack_count++;
+        //start flushing out ACKs so our pipes don't fill up
+        if(expected_ack_count > 8){
+            err |= end_move();
+            expected_ack_count--;
+        }
+        elems_remaining -= max_seg_count;
+    }
+    //flush remaining ACKs 
+    for(int i=0; i < expected_ack_count; i++){
+        err |= end_move();
+    }
+    return err;
 }
 
 //waits for a messages to come and move their contents in a buffer
@@ -374,14 +405,45 @@ int recv(
 ) {
     //if ETH_COMPRESSED is set, also set OP1_COMPRESSED
     compression |= (compression & ETH_COMPRESSED) >> 2;
-    return move(
-        MOVE_NONE,
-        MOVE_ON_RECV,
-        (stream & RES_STREAM) ? MOVE_STREAM : MOVE_IMMEDIATE,
-        compression, RES_LOCAL, 0,
-        count, comm_offset, arcfg_offset, 0, 0, dst_addr, 0, 0, 0,
-        src_rank, src_tag, 0, (stream & RES_STREAM) ? src_tag : 0
-    );
+
+    int err = NO_ERROR;
+    unsigned int max_seg_count;
+    int elems_remaining = count;
+    //convert max segment size to max segment count
+    //if pulling from a stream, segment size is irrelevant and we use the
+    //count directly because streams can't be read losslessly
+    //TODO: somehow this hangs in emulation for large messages, so commeted out for now
+    // if(stream & OP0_STREAM){
+    //     max_seg_count = count;
+    // } else{
+        //compute count from uncompressed elem bytes in aright config
+        //instead of Xil_In32 we could use:
+        //(datapath_arith_config*)(arcfg_offset)->uncompressed_elem_bytes;
+        max_seg_count = max_segment_size / Xil_In32(arcfg_offset);
+    // }
+    int expected_ack_count = 0;
+    while (elems_remaining > 0) { 
+        start_move(
+            MOVE_NONE,
+            MOVE_ON_RECV,
+            (stream & RES_STREAM) ? MOVE_STREAM : MOVE_IMMEDIATE,
+            compression, RES_LOCAL, 0,
+            min(max_seg_count, elems_remaining), comm_offset, arcfg_offset, 0, 0, dst_addr, 0, 0, 0,
+            src_rank, src_tag, 0, (stream & RES_STREAM) ? src_tag : 0
+        );
+        expected_ack_count++;
+        //start flushing out ACKs so our pipes don't fill up
+        if(expected_ack_count > 8){
+            err |= end_move();
+            expected_ack_count--;
+        }
+        elems_remaining -= max_seg_count;
+    }
+    //flush remaining ACKs 
+    for(int i=0; i < expected_ack_count; i++){
+        err |= end_move();
+    }
+    return err;
 }
 
 //iterates over rx buffers until match is found or a timeout expires
