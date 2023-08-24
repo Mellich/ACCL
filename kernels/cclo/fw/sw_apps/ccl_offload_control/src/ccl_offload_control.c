@@ -635,6 +635,114 @@ int broadcast(  unsigned int count,
     return err;
 }
 
+int broadcast_btree(unsigned int count,
+              unsigned int src_rank,
+              uint64_t buf_addr,
+              unsigned int comm_offset,
+              unsigned int arcfg_offset,
+              unsigned int compression,
+              unsigned int stream)
+{
+
+    int err = NO_ERROR;
+    unsigned int max_seg_count;
+    int elems_remaining = count;
+    // convert max segment size to max segment count
+    // if pulling from a stream, segment size is irrelevant and we use the
+    // count directly because streams can't be read losslessly
+    if (stream & OP0_STREAM)
+    {
+        max_seg_count = count;
+    }
+    else
+    {
+        // compute count from uncompressed elem bytes in aright config
+        // instead of Xil_In32 we could use:
+        //(datapath_arith_config*)(arcfg_offset)->uncompressed_elem_bytes;
+        max_seg_count = max_segment_size / Xil_In32(arcfg_offset);
+    }
+
+    // Calculate rank relative to source rank
+    // used to simplify offset calculation for sender and receiver
+    int relative_rank = (world.local_rank + world.size - src_rank) % world.size;
+
+    int expected_ack_count = 0;
+    while (elems_remaining > 0)
+    {
+        // counter for the communication round
+        int comm_round = 0;
+        // boolean to indicate if this is the first send in this operation
+        // Used in the send operation to make use of MOVE_REPEAT
+        int first_send = 1;
+
+        // we only need log2(world.size) communication rounds instead of world.size
+        while ((1 << comm_round) < world.size)
+        {
+            // bitmask for the active bit in this communication round
+            int checkbit = (1 << comm_round);
+            // calculate the destination rank to send data
+            int dst = ((relative_rank ^ checkbit) + src_rank) % world.size;
+            // Only send data if
+            //      - the relative rank has a 0 bit at the current position
+            //      - the relative rank has no further 1s
+            //      - the offset for the destination rank is smaller than world size
+            if ((relative_rank & checkbit) == 0 &&
+                (relative_rank >> comm_round) == 0 &&
+                (relative_rank ^ checkbit) < world.size)
+            {
+                //on the root we only care about ETH_COMPRESSED and OP0_COMPRESSED
+                //so replace RES_COMPRESSED with ETH_COMPRESSED
+                compression = compression | ((compression & ETH_COMPRESSED) >> 1);
+                start_move(
+                    (first_send == 1) ? ((elems_remaining == count) ? MOVE_IMMEDIATE : MOVE_INCREMENT) : MOVE_REPEAT,
+                    MOVE_NONE,
+                    MOVE_IMMEDIATE,
+                    compression, RES_REMOTE, 0,
+                    min(max_seg_count, elems_remaining),
+                    comm_offset, arcfg_offset,
+                    buf_addr, 0, 0, 0, 0, 0,
+                    0, 0, dst, TAG_ANY);
+                expected_ack_count++;
+                // start flushing out ACKs so our pipes don't fill up
+                if (expected_ack_count > 8)
+                {
+                    err |= end_move();
+                    expected_ack_count--;
+                }
+                first_send = 0;
+            }
+            // Only receive data if
+            //      - the relative rank has a 1 bit at the current position
+            //      - this is the highest order 1 bit in relative rank
+            if ((relative_rank & checkbit) > 0 &&
+                (relative_rank >> (comm_round + 1)) == 0)
+            {
+                int sender = ((relative_rank ^ checkbit) + src_rank) % world.size;
+                // on non-root nodes we only care about ETH_COMPRESSED and RES_COMPRESSED
+                // so replace OP1_COMPRESSED with the value of ETH_COMPRESSED
+                compression = compression | ((compression & ETH_COMPRESSED) >> 2);
+                err |= move(
+                    MOVE_NONE,
+                    MOVE_ON_RECV,
+                    (elems_remaining == count) ? MOVE_IMMEDIATE : MOVE_INCREMENT,
+                    compression, RES_LOCAL, 0,
+                    min(max_seg_count, elems_remaining),
+                    comm_offset, arcfg_offset,
+                    0, 0, buf_addr, 0, 0, 0,
+                    sender, TAG_ANY, 0, 0);
+            }
+            comm_round += 1;
+        }
+        elems_remaining -= max_seg_count;
+    }
+    // flush remaining ACKs
+    for (int i = 0; i < expected_ack_count; i++)
+    {
+        err |= end_move();
+    }
+    return err;
+}
+
 //scatter segment at a time. root sends each rank a segment in a round robin fashion
 //use MOVE_IMMEDIATE and MOVE_INCREMENTING and MOVE_STRIDE in sequence
 int scatter(unsigned int count,
@@ -1393,7 +1501,7 @@ void run() {
                 retval = recv(root_src_dst, count, res_addr, comm, datapath_cfg, msg_tag, compression_flags, stream_flags);
                 break;
             case ACCL_BCAST:
-                retval = broadcast(count, root_src_dst, op0_addr, comm, datapath_cfg, compression_flags, stream_flags);
+                retval = broadcast_btree(count, root_src_dst, op0_addr, comm, datapath_cfg, compression_flags, stream_flags);
                 break;
             case ACCL_SCATTER:
                 retval = scatter(count, root_src_dst, op0_addr, res_addr, comm, datapath_cfg, compression_flags, stream_flags);
