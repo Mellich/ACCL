@@ -671,9 +671,6 @@ int broadcast_btree(unsigned int count,
     {
         // counter for the communication round
         int comm_round = 0;
-        // boolean to indicate if this is the first send in this operation
-        // Used in the send operation to make use of MOVE_REPEAT
-        int first_send = 1;
 
         // we only need log2(world.size) communication rounds instead of world.size
         while ((1 << comm_round) < world.size)
@@ -693,8 +690,12 @@ int broadcast_btree(unsigned int count,
                 //on the root we only care about ETH_COMPRESSED and OP0_COMPRESSED
                 //so replace RES_COMPRESSED with ETH_COMPRESSED
                 compression = compression | ((compression & ETH_COMPRESSED) >> 1);
+                // Send current chunk to partner rank
+                // Use MOVE_IMMEDIATE if it is the source rank and this is the first send operation (because it does not need to receive)
+                // Use MOVE_INCREMENT if it is the source rank to update the pointer and directly send
+                // MOVE_REPEAT otherwise because data was already received and pointer should be in correct position
                 start_move(
-                    (first_send == 1) ? ((elems_remaining == count) ? MOVE_IMMEDIATE : MOVE_INCREMENT) : MOVE_REPEAT,
+                    (relative_rank == 0) ? ((elems_remaining == count) ? MOVE_IMMEDIATE : MOVE_INCREMENT) : MOVE_REPEAT,
                     MOVE_NONE,
                     MOVE_IMMEDIATE,
                     compression, RES_REMOTE, 0,
@@ -709,7 +710,6 @@ int broadcast_btree(unsigned int count,
                     err |= end_move();
                     expected_ack_count--;
                 }
-                first_send = 0;
             }
             // Only receive data if
             //      - the relative rank has a 1 bit at the current position
@@ -721,6 +721,9 @@ int broadcast_btree(unsigned int count,
                 // on non-root nodes we only care about ETH_COMPRESSED and RES_COMPRESSED
                 // so replace OP1_COMPRESSED with the value of ETH_COMPRESSED
                 compression = compression | ((compression & ETH_COMPRESSED) >> 2);
+                // The first time we receive, we use MOVE_IMMEDIATE
+                // every other time we use MOVE_INCREMENT because we will always receive the next segment in the buffer
+                // a
                 err |= move(
                     MOVE_NONE,
                     MOVE_ON_RECV,
@@ -734,12 +737,14 @@ int broadcast_btree(unsigned int count,
             comm_round += 1;
         }
         elems_remaining -= max_seg_count;
+        // flush remaining ACKs in every communication round
+        // to prevent overlaps with next receive operation
+        for (int i = 0; i < expected_ack_count; i++)
+        {
+            err |= end_move();
+        }
     }
-    // flush remaining ACKs
-    for (int i = 0; i < expected_ack_count; i++)
-    {
-        err |= end_move();
-    }
+
     return err;
 }
 
