@@ -73,6 +73,37 @@ TEST_F(ACCLTest, test_copy_p2p) {
   }
 }
 
+TEST_F(ACCLTest, test_complex_comm) {
+  if (size != 3) {
+    GTEST_SKIP() << "Only works with exactly 3 ranks";
+  }
+  unsigned int count = options.count;
+  auto src_buf = accl->create_buffer<float>(count, dataType::int32);
+  auto dst_buf = accl->create_buffer<float>(count, dataType::int32);
+  for (int i=0; i < count; i++) {
+    src_buf->buffer()[i] = rank;
+  }
+
+  std::vector<int> pnneigh = {1,1,2};
+  std::vector<int> partneigh = {2,0,0,0,0,0,0,0,0,
+                                2,0,0,0,0,0,0,0,0,
+                                1,0,0,0,0,0,0,0,0};
+
+  for(int i = 0; i < pnneigh[rank]; i++){
+    // Most inner loop aggregated to single ACCL call to increase message sizes
+    std::cout << " - Send data via ACCL: " <<  options.count << " to " << partneigh[i + 9 * rank] << std::endl;
+    accl->send(*src_buf, options.count, partneigh[i + 9 * rank], rank);
+  }
+  for(int i = 0; i < pnneigh[rank]; i++){
+    std::cout << " - Recv data via ACCL: " <<  options.count << " from " << partneigh[i + 9 * rank] << std::endl;
+    accl->recv(*dst_buf, options.count, partneigh[i + 9 * rank], partneigh[i + 9 * rank]);
+    for(int d=0; d<options.count; d++){
+      EXPECT_EQ(dst_buf->buffer()[d], partneigh[i + 9 * rank]);
+    }
+  }
+  std::cout << "Done" << std::endl;
+}
+
 TEST_P(ACCLFuncTest, test_combine) {
   if((GetParam() != reduceFunction::SUM) && (GetParam() != reduceFunction::MAX)){
     GTEST_SKIP() << "Unrecognized reduction function";
