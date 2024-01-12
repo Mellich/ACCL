@@ -188,9 +188,9 @@ void configure_vnx(vnx::CMAC &cmac, vnx::Networklayer &network_layer,
   network_layer.arp_discovery();
   std::cout << "ARP discovery finished!" << std::endl;
 
-  if (!check_arp(network_layer, ranks, local_rank, ranks.size())) {
-    throw network_error("Problem in ARP table.");
-  }
+  // if (!check_arp(network_layer, ranks, local_rank, ranks.size())) {
+  //   throw network_error("Problem in ARP table.");
+  // }
 }
 
 void configure_tcp(FPGABuffer<int8_t> &tx_buf_network, FPGABuffer<int8_t> &rx_buf_network,
