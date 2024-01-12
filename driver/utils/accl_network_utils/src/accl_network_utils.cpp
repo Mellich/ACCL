@@ -393,9 +393,9 @@ initialize_accl(const std::vector<rank_t> &ranks, int local_rank,
     }
 
     if (design == acclDesign::UDP) {
-      auto cmac = vnx::CMAC(xrt::ip(device, xclbin_uuid, "cmac_0:{cmac_0}"));
+      auto cmac = vnx::CMAC(xrt::ip(device, xclbin_uuid, "cmac_0:{cmac}"));
       auto network_layer = vnx::Networklayer(
-          xrt::ip(device, xclbin_uuid, "networklayer:{networklayer_0}"));
+          xrt::ip(device, xclbin_uuid, "networklayer:{poe_0}"));
 
       configure_vnx(cmac, network_layer, ranks, local_rank, rsfec);
     } else if (design == acclDesign::TCP) {
