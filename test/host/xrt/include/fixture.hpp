@@ -72,8 +72,10 @@ class TestEnvironment : public ::testing::Environment {
         design = acclDesign::ROCE;
       }
 
+      int rank;
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
       if (options.hardware || options.test_xrt_simulator) {
-        dev = xrt::device(options.device_index);
+        dev = xrt::device(rank % 3);
       }
 
       // Set up for benchmarking
