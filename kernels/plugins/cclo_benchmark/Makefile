@@ -1,6 +1,5 @@
-
 # /*******************************************************************************
-#  Copyright (C) 2021 Xilinx, Inc
+#  Copyright (C) 2024 Marius Meyer
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -16,24 +15,12 @@
 #
 # *******************************************************************************/
 
-PERIPHERAL_IPS = hostctrl loopback reduce_ops hp_compression dummy_tcp_stack client_arbiter vadd_put call_probe cclo_benchmark
+DEVICE=xcu250-figd2104-2L-e
+BM_IP=cclo_benchmark.xo
 TARGET=ip
-PLATFORM ?= xilinx_u280_xdma_201920_3
-DEBUG ?= none
 
-ifeq (u250,$(findstring u250, $(PLATFORM)))
-	FPGAPART=xcu250-figd2104-2L-e
-else ifeq (u280,$(findstring u280, $(PLATFORM)))
-	FPGAPART=xcu280-fsvh2892-2L-e
-else ifeq (u55c,$(findstring u55c, $(PLATFORM)))
-	FPGAPART=xcu55c-fsvh2892-2L-e
-else
-	$(error Unsupported PLATFORM)
-endif
+all: $(BM_IP) 
 
-all: $(PERIPHERAL_IPS)
+$(BM_IP): build_cclo_benchmark.tcl cclo_benchmark.cpp
+	vitis_hls $< -tclargs $(TARGET) $(DEVICE)
 
-.PHONY: hostctrl loopback reduce_ops hp_compression dummy_tcp_stack client_arbiter vadd_put call_probe
-
-$(PERIPHERAL_IPS):
-	$(MAKE) -C $@ DEVICE=$(FPGAPART) TARGET=$(TARGET)

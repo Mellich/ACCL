@@ -57,6 +57,7 @@ SUM_XO=../../kernels/plugins/reduce_ops/reduce_ops.xo
 COMPRESSION_XO=../../kernels/plugins/hp_compression/hp_compression.xo
 LOOPBACK_XO=../../kernels/plugins/loopback/loopback.xo
 VADD_XO=../../kernels/plugins/vadd_put/vadd_put.xo
+BM_XO=../../kernels/plugins/cclo_benchmark/cclo_benchmark.xo
 
 ARITHMETIC_XO = $(SUM_XO) $(COMPRESSION_XO)
 
@@ -135,6 +136,27 @@ else ifeq (roce, $(MODE))
 	NET_XO = $(ROCE_XO) $(CMAC_UDP_XO)
 	OTHER_XO = $(LOOPBACK_XO)
 	CONFIG += --advanced.param compiler.userPostSysLinkOverlayTcl=$(shell pwd)/$(VNX)/Ethernet/post_sys_link.tcl
+	CCLO_STACK_TYPE = UDP
+else ifeq (benchmark, $(MODE))
+	ifeq (u50,$(findstring u50, $(PLATFORM)))
+		HLS_IP_FOLDER  = $(shell readlink -f ./$(NETLAYERHLS)/synthesis_results_HBM)
+	endif
+	ifeq (u55c,$(findstring u55c, $(PLATFORM)))
+		HLS_IP_FOLDER  = $(shell readlink -f ./$(NETLAYERHLS)/synthesis_results_HBM)
+	endif
+	ifeq (u200,$(findstring u200, $(PLATFORM)))
+		HLS_IP_FOLDER  = $(shell readlink -f ./$(NETLAYERHLS)/synthesis_results_noHBM)
+	endif
+	ifeq (u250,$(findstring u250, $(PLATFORM)))
+		HLS_IP_FOLDER  = $(shell readlink -f ./$(NETLAYERHLS)/synthesis_results_noHBM)
+	endif
+	ifeq (u280,$(findstring u280, $(PLATFORM)))
+		HLS_IP_FOLDER  = $(shell readlink -f ./$(NETLAYERHLS)/synthesis_results_HBM)
+	endif
+	CONFIG += --advanced.param compiler.userPostSysLinkOverlayTcl=$(shell pwd)/$(VNX)/Ethernet/post_sys_link.tcl
+	NET_XO = $(CMAC_UDP_XO) $(UDP_XO)
+	OTHER_XO = $(LOOPBACK_XO) $(BM_XO)
+	CONFIG += --user_ip_repo_paths $(HLS_IP_FOLDER)
 	CCLO_STACK_TYPE = UDP
 else
 	$(error Unsupported MODE)
