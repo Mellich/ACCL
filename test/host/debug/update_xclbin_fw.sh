@@ -1,5 +1,6 @@
 # /*******************************************************************************
 #  Copyright (C) 2021 Xilinx, Inc
+#  Copyright (C) 2024 Marius Meyer
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -16,21 +17,21 @@
 # *******************************************************************************/
 
 #Arguments: <old xclbin> <vivado project> <new elf> <new xclbin>
+#
+#	<old xclbin>: 		Path to the xclbin that is used as basis and contains 
+#						an ACCL instance with microblaze
+#	<vivado project>: 	Path to the Vivado project (.xpr) of the base bitstream               
+#	<new elf>:			New ELF file with firmware for the CCLO
+#	<new xclbin>:		Path of the newly created bitstream
+#
+# Depending on the desing of the used ACCL bitstream, the path to the microblaze
+# in the design may have to be adapted. This can be done by setting the
+# variable MICROBALZE_PATH in this script.
+#
+# Changes (Marius Meyer):
+#	- Update path to microblaze in updatemem
+#	- Use input xclbin as basis for new bitstream
+#	- Add description of input parameters
+#   - use GNU make for building to reduce build time for repeated builds
 
-#extract bitstream from xclbin on first argument
-xclbinutil --force --dump-section BITSTREAM:RAW:bitstream.bit --input $1
-
-#use Vivado to extract descriptor.mmi file from the project
-echo "set mmi [lindex $::argv 0]" > extract_mmi.tcl
-echo "open_run impl_1" >> extract_mmi.tcl
-echo "write_mem_info \$mmi" >> extract_mmi.tcl
-vivado $2 -mode batch -source extract_mmi.tcl -tclargs descriptor.mmi
-
-#update the new executable in the bitstream
-updatemem -force --meminfo descriptor.mmi --data $3 --bit bitstream.bit --proc pfm_top_i/dynamic_region/ccl_offload_0/ccl_offload_bd_i/control/microblaze_0 --out bitstream_updated.bit
-
-#write bitstream to xclbin
-xclbinutil --force --replace-section BITSTREAM:RAW:bitstream_updated.bit --input file.xclbin --o $4
-
-#remove temp files
-rm bitstream.bit extract_mmi.tcl descriptor.mmi bitstream_updated.bit
+make INPUT_XCLBIN=$1 VIVADO_PROJECT=$2 NEW_ELF=$3 OUTPUT_XCLBIN=$4
