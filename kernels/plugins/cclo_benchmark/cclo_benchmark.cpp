@@ -36,6 +36,7 @@ void cclo_benchmark(
 ){
 #pragma HLS INTERFACE s_axilite port=benchmark_type
 #pragma HLS INTERFACE s_axilite port=repetitions
+#pragma HLS INTERFACE s_axilite port=src_addr
 #pragma HLS INTERFACE s_axilite port=comm_adr
 #pragma HLS INTERFACE s_axilite port=dpcfg_adr
 #pragma HLS INTERFACE axis port=cmd_to_cclo
