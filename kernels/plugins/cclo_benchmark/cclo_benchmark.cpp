@@ -21,7 +21,7 @@
 //an elementwise increment on fp32 data in src 
 //followed by a put to another rank, then
 //writing result in dst
-void ccol_benchmark(
+void cclo_benchmark(
     int benchmark_type,
     int repetitions,
     //parameters pertaining to CCLO config
