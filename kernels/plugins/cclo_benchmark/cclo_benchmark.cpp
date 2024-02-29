@@ -62,7 +62,7 @@ void ccol_benchmark(
         default: break; 
     }
 
-    for (uint32_t i= 0; i < repetitions; i++) {
+    for (ap_uint<32> i= 0; i < repetitions; i++) {
         // Push data into the data stream if required
         if (benchmark_type == BENCHMARK_TYPE_STREAM) {
             ap_uint<512> tmpword;
@@ -76,12 +76,12 @@ void ccol_benchmark(
         // Schedule the command
         {
             #pragma HLS protocol fixed
-            start_call(
+            accl.start_call(
                 accl_op, 16, 0, 0, 0, 0, 
                 dpcfg_adr, 0, sflags, 
                 src_addr, 0, 0
             );
-            finalize_call();
+            accl.finalize_call();
         }
         // Read back data from the stream if required
         if (benchmark_type != BENCHMARK_TYPE_NOP) {
