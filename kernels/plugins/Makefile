@@ -33,7 +33,7 @@ endif
 
 all: $(PERIPHERAL_IPS)
 
-.PHONY: hostctrl loopback reduce_ops hp_compression dummy_tcp_stack client_arbiter vadd_put call_probe
+.PHONY: hostctrl loopback reduce_ops hp_compression dummy_tcp_stack client_arbiter vadd_put call_probe cclo_benchmark
 
 $(PERIPHERAL_IPS):
 	$(MAKE) -C $@ DEVICE=$(FPGAPART) TARGET=$(TARGET)
