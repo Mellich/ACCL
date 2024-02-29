@@ -17,9 +17,9 @@
 
 #include <accl_hls.h>
 
-static int BENCHMARK_TYPE_NOP = 0;
-static int BENCHMARK_TYPE_STREAM = 1;
-static int BENCHMARK_TYPE_MEM = 2;
+static const int BENCHMARK_TYPE_NOP = 0;
+static const int BENCHMARK_TYPE_STREAM = 1;
+static const int BENCHMARK_TYPE_MEM = 2;
 
 void cclo_benchmark(
     int benchmark_type,
