@@ -67,9 +67,8 @@ void ccol_benchmark(
         if (benchmark_type == BENCHMARK_TYPE_STREAM) {
             ap_uint<512> tmpword;
             for(int i=0; i<16; i++){
-                float inc = src[i+16*word_count]+1;
+                float inc = i;
                 tmpword((i+1)*32-1, i*32) = *reinterpret_cast<ap_uint<32>*>(&inc);
-                rd_count--;
             }
             //send the vector to cclo
             data.push(tmpword, 0);
