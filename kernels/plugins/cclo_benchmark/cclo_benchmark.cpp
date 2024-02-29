@@ -15,7 +15,7 @@
 #
 # *******************************************************************************/
 
-#include <vadd_put.h>
+#include <cclo_benchmark.h>
 
 //hls-synthesizable function performing
 //an elementwise increment on fp32 data in src 
