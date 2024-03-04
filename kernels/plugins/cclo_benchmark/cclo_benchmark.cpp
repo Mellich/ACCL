@@ -22,10 +22,10 @@
 //followed by a put to another rank, then
 //writing result in dst
 void cclo_benchmark(
-    int benchmark_type,
-    int repetitions,
+    ap_uint<32> benchmark_type,
+    ap_uint<32> repetitions,
     //parameters pertaining to CCLO config
-    ap_uint<32> src_addr,
+    ap_uint<64> src_addr,
     ap_uint<32> comm_adr, 
     ap_uint<32> dpcfg_adr,
     //streams to and from CCLO

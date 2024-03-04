@@ -22,9 +22,10 @@ static const int BENCHMARK_TYPE_STREAM = 1;
 static const int BENCHMARK_TYPE_MEM = 2;
 
 void cclo_benchmark(
-    int benchmark_type,
-    int repetitions,
+    ap_uint<32> benchmark_type,
+    ap_uint<32> repetitions,
     //parameters pertaining to CCLO config
+    ap_uint<64> src_addr,
     ap_uint<32> comm_adr, 
     ap_uint<32> dpcfg_adr,
     //streams to and from CCLO

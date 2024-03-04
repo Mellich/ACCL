@@ -37,6 +37,7 @@ set(HLSLIB_INCLUDE ${ACCL_REPO_ROOT}/hlslib/include/hlslib/xilinx/)
 set(ACCL_HLSDRV_DIR ${ACCL_REPO_ROOT}/driver/hls/)
 set(CCLO_BFM_DIR ${ACCL_REPO_ROOT}/test/model/bfm/)
 set(VADD_DIR ${ACCL_REPO_ROOT}/kernels/plugins/vadd_put/)
+set(BM_DIR ${ACCL_REPO_ROOT}/kernels/plugins/cclo_benchmark/)
 set(EMU_INCLUDES ${HLSLIB_INCLUDE} $ENV{XILINX_HLS}/include/ ${ACCL_HLSDRV_DIR} ${CCLO_BFM_DIR})
 
 set(CMAKE_BUILD_TYPE Debug)
@@ -52,6 +53,11 @@ find_package(MPI REQUIRED)
 add_executable(test test.cpp ${CCLO_BFM_DIR}/cclo_bfm.cpp ${VADD_DIR}/vadd_put.cpp)
 target_include_directories(test PUBLIC ${MPI_CXX_INCLUDE_PATH} ${ACCL_INCLUDE_PATH} ${EMU_INCLUDES} ${VADD_DIR})
 target_link_libraries(test PUBLIC MPI::MPI_CXX zmq zmqpp pthread cclobfm accl_network_utils)
+
+add_executable(benchmark benchmark.cpp ${CCLO_BFM_DIR}/cclo_bfm.cpp ${BM_DIR}/cclo_benchmark.cpp)
+target_include_directories(benchmark PUBLIC ${MPI_CXX_INCLUDE_PATH} ${ACCL_INCLUDE_PATH} ${EMU_INCLUDES} ${BM_DIR})
+target_link_libraries(benchmark PUBLIC MPI::MPI_CXX zmq zmqpp pthread cclobfm accl_network_utils)
+
 # Explicitely link against vnx and network_roce_v2 because CMake doesn't support nested object libraries
 # https://stackoverflow.com/a/71040950
 target_link_libraries(test PUBLIC vnx network_roce_v2)
