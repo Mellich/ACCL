@@ -82,6 +82,7 @@ void cclo_benchmark(
                 dpcfg_adr, 0, sflags, 
                 src_addr, 0, 0
             );
+            ap_wait();
             accl.finalize_call();
         }
         // Read back data from the stream if required

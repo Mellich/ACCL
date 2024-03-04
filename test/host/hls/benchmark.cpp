@@ -66,7 +66,7 @@ void test_benchmark(ACCL::ACCL &accl, xrt::device &device, options_t options, in
     src_bo->sync_to_device();
 
     if (options.hardware) {
-        auto bm_ip = xrt::kernel(device, device.get_xclbin_uuid(), "cclo_benchmark:{cclo_benchmark_" + std::to_string(rank) + "_0}",
+        auto bm_ip = xrt::kernel(device, device.get_xclbin_uuid(), "cclo_benchmark:{bench}",
                         xrt::kernel::cu_access_mode::exclusive);
         auto t1 = std::chrono::high_resolution_clock::now();
         auto run = bm_ip(operation, options.nruns, src_bo->physical_address(), accl.get_communicator_addr(),
@@ -151,11 +151,6 @@ options_t parse_options(int argc, char *argv[]) {
 
     try {
         cmd.parse(argc, argv);
-        if(hardware_arg.getValue()) {
-            if(udp_arg.getValue()) {
-                throw std::runtime_error("Hardware run only supported on axis3x.");
-            }
-        }
     } catch (std::exception &e) {
         if (rank == 0) {
         std::cout << "Error: " << e.what() << std::endl;
