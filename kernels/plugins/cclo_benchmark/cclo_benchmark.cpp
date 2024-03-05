@@ -24,6 +24,7 @@
 void cclo_benchmark(
     ap_uint<32> benchmark_type,
     ap_uint<32> repetitions,
+    ap_uint<32> n_chunks,
     //parameters pertaining to CCLO config
     ap_uint<64> src_addr,
     ap_uint<32> comm_adr, 
@@ -36,6 +37,7 @@ void cclo_benchmark(
 ){
 #pragma HLS INTERFACE s_axilite port=benchmark_type
 #pragma HLS INTERFACE s_axilite port=repetitions
+#pragma HLS INTERFACE s_axilite port=n_chunks
 #pragma HLS INTERFACE s_axilite port=src_addr
 #pragma HLS INTERFACE s_axilite port=comm_adr
 #pragma HLS INTERFACE s_axilite port=dpcfg_adr
@@ -66,19 +68,21 @@ void cclo_benchmark(
     for (ap_uint<32> i= 0; i < repetitions; i++) {
         // Push data into the data stream if required
         if (benchmark_type == BENCHMARK_TYPE_STREAM) {
-            ap_uint<512> tmpword;
-            for(int i=0; i<16; i++){
-                float inc = i;
-                tmpword((i+1)*32-1, i*32) = *reinterpret_cast<ap_uint<32>*>(&inc);
+            for (int c=0; c<n_chunks; c++) {
+                ap_uint<512> tmpword;
+                for(int i=0; i<16; i++){
+                    float inc = i;
+                    tmpword((i+1)*32-1, i*32) = *reinterpret_cast<ap_uint<32>*>(&inc);
+                }
+                //send the vector to cclo
+                data.push(tmpword, 0);
             }
-            //send the vector to cclo
-            data.push(tmpword, 0);
         }
         // Schedule the command
         {
             #pragma HLS protocol fixed
             accl.start_call(
-                accl_op, 16, 0, 0, 0, 0, 
+                accl_op, n_chunks * 16, 0, 0, 0, 0, 
                 dpcfg_adr, 0, sflags, 
                 src_addr, 0, 0
             );
@@ -87,7 +91,9 @@ void cclo_benchmark(
         }
         // Read back data from the stream if required
         if (benchmark_type != BENCHMARK_TYPE_NOP) {
-            ap_uint<512> d = data.pull().data;
+            for (int c=0; c<n_chunks; c++) {
+                ap_uint<512> d = data.pull().data;
+            }
         }
     }
 }

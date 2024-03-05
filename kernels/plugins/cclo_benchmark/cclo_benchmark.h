@@ -24,6 +24,7 @@ static const int BENCHMARK_TYPE_MEM = 2;
 void cclo_benchmark(
     ap_uint<32> benchmark_type,
     ap_uint<32> repetitions,
+    ap_uint<32> n_chunks,
     //parameters pertaining to CCLO config
     ap_uint<64> src_addr,
     ap_uint<32> comm_adr, 

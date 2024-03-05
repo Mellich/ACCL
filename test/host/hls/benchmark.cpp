@@ -57,7 +57,7 @@ void test_benchmark(ACCL::ACCL &accl, xrt::device &device, options_t options, in
 
     //allocate float arrays for the HLS function to use
     float src[options.count];
-    for(int i=0; i<options.count; i++){
+    for(int i=0; i<options.count*16; i++){
         src[i] = 1.0*(options.count*rank+i);
     }
     double time;
@@ -69,7 +69,7 @@ void test_benchmark(ACCL::ACCL &accl, xrt::device &device, options_t options, in
         auto bm_ip = xrt::kernel(device, device.get_xclbin_uuid(), "cclo_benchmark:{bench}",
                         xrt::kernel::cu_access_mode::exclusive);
         auto t1 = std::chrono::high_resolution_clock::now();
-        auto run = bm_ip(operation, options.nruns, src_bo->physical_address(), accl.get_communicator_addr(),
+        auto run = bm_ip(operation, options.nruns, options.count, src_bo->physical_address(), accl.get_communicator_addr(),
                     accl.get_arithmetic_config_addr({dataType::float32, dataType::float32}));
         run.wait(10000);
         auto t2 = std::chrono::high_resolution_clock::now();
@@ -87,7 +87,7 @@ void test_benchmark(ACCL::ACCL &accl, xrt::device &device, options_t options, in
 
         auto t1 = std::chrono::high_resolution_clock::now();
         //run the hls function, using the global communicator
-        cclo_benchmark(operation, options.nruns, src_bo->physical_address(),
+        cclo_benchmark(operation, options.nruns, options.count, src_bo->physical_address(),
                     accl.get_communicator_addr(),
                     accl.get_arithmetic_config_addr({dataType::float32, dataType::float32}),
                     callreq, callack,
