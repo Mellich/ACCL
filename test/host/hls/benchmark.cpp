@@ -56,13 +56,13 @@ void test_benchmark(ACCL::ACCL &accl, xrt::device &device, options_t options, in
     //run test here:
 
     //allocate float arrays for the HLS function to use
-    float src[options.count];
+    float src[16*options.count];
     for(int i=0; i<options.count*16; i++){
         src[i] = 1.0*(options.count*rank+i);
     }
     double time;
     //need to use XRT API because vadd kernel might use different HBM banks than ACCL
-    auto src_bo = accl.create_buffer<float>(src, options.count,ACCL::dataType::float32);
+    auto src_bo = accl.create_buffer<float>(src, 16*options.count,ACCL::dataType::float32);
     src_bo->sync_to_device();
 
     if (options.hardware) {
